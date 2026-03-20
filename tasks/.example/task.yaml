@@ -1,0 +1,32 @@
+# Example task definition
+# Copy this directory and modify to create new tasks
+
+name: example-task
+description: A sample task to demonstrate the framework
+
+# The prompt sent to Claude CLI
+prompt: |
+  Create a Python function that parses a CSV file and returns
+  the top 5 rows sorted by a given column name.
+
+# Optional: files to seed into the workspace before running
+# These are copied into each environment's working directory
+seed_files: []
+  # - data/sample.csv
+
+# Evaluation criteria specific to this task (supplements global criteria)
+eval_criteria:
+  - handles edge cases (empty file, missing column)
+  - returns correct data types
+  - includes error handling
+
+# Optional: expected output description for the judge
+expected_behavior: |
+  A clean function that reads CSV, validates the column exists,
+  sorts by that column, and returns the top 5 rows. Should handle
+  errors gracefully.
+
+# Tags for filtering/grouping runs
+tags:
+  - python
+  - data-processing

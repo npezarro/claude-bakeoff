@@ -1,0 +1,24 @@
+# claude-arena configuration
+# A/B testing framework for Claude CLI environments
+
+# Default environments to compare
+env_a: baseline
+env_b: experimental
+
+# Claude CLI settings
+claude_bin: claude
+claude_model: ""  # empty = use default
+claude_max_turns: 10
+
+# Evaluation
+eval_method: llm-judge        # llm-judge | diff | both
+judge_model: ""               # empty = use same claude CLI
+judge_criteria:
+  - correctness
+  - completeness
+  - code_quality
+  - adherence_to_instructions
+
+# Output
+runs_dir: runs
+evaluations_dir: evaluations
