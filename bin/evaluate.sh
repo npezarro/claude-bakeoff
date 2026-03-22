@@ -160,3 +160,9 @@ EOF
 
 log_ok "Evaluation complete: $EVAL_DIR/${RUN_ID}.yaml"
 log_info "Run 'arena report $RUN_ID' to view results"
+
+# Auto-post to Discord #claude-arena
+if [ -f "$ARENA_ROOT/bin/discord-report.sh" ]; then
+    log_info "Posting results to Discord..."
+    "$ARENA_ROOT/bin/discord-report.sh" "$RUN_ID" || log_error "Discord report failed (non-fatal)"
+fi
