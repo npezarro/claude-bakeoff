@@ -12,15 +12,17 @@ Usage:
   arena run    <task> [--env-a NAME] [--env-b NAME] [--id RUN_ID]
   arena eval   <run-id>
   arena report <run-id>
+  arena discord-report <run-id>
   arena list   [tasks|runs|envs]
   arena new    <task|env> <name>
 
 Commands:
-  run      Execute a task in both environments and capture results
-  eval     Run LLM-as-judge evaluation on a completed run
-  report   Display evaluation report for a run
-  list     List available tasks, runs, or environments
-  new      Scaffold a new task or environment
+  run              Execute a task in both environments and capture results
+  eval             Run LLM-as-judge evaluation on a completed run
+  report           Display evaluation report for a run
+  discord-report   Post evaluation results to #claude-arena in Discord
+  list             List available tasks, runs, or environments
+  new              Scaffold a new task or environment
 
 Options:
   --env-a NAME    Override environment A (default: from config.yaml)
@@ -41,11 +43,12 @@ cmd="${1:-}"
 shift || true
 
 case "$cmd" in
-    run)    exec "$ARENA_ROOT/bin/run.sh" "$@" ;;
-    eval)   exec "$ARENA_ROOT/bin/evaluate.sh" "$@" ;;
-    report) exec "$ARENA_ROOT/bin/report.sh" "$@" ;;
-    list)   exec "$ARENA_ROOT/bin/list.sh" "$@" ;;
-    new)    exec "$ARENA_ROOT/bin/new.sh" "$@" ;;
+    run)            exec "$ARENA_ROOT/bin/run.sh" "$@" ;;
+    eval)           exec "$ARENA_ROOT/bin/evaluate.sh" "$@" ;;
+    report)         exec "$ARENA_ROOT/bin/report.sh" "$@" ;;
+    discord-report) exec "$ARENA_ROOT/bin/discord-report.sh" "$@" ;;
+    list)           exec "$ARENA_ROOT/bin/list.sh" "$@" ;;
+    new)            exec "$ARENA_ROOT/bin/new.sh" "$@" ;;
     -h|--help|help|"") usage ;;
     *)      echo "Unknown command: $cmd" >&2; usage ;;
 esac
