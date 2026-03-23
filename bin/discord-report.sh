@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# discord-report.sh — Post claude-arena evaluation results to #claude-arena in Discord.
+# discord-report.sh — Post claude-bakeoff evaluation results to #claude-bakeoff in Discord.
 #
 # Usage:
 #   arena discord-report <run-id>              # post evaluation results
@@ -69,7 +69,7 @@ print(json.dumps({
         'title': sys.argv[1],
         'description': sys.argv[2],
         'color': int(sys.argv[3]),
-        'footer': {'text': 'claude-arena'},
+        'footer': {'text': 'claude-bakeoff'},
         'timestamp': '$(date -u '+%Y-%m-%dT%H:%M:%SZ')'
     }]
 }))
@@ -126,13 +126,13 @@ ${SUMMARY}
 
 TITLE="Arena: ${TASK} — ${ENV_A} vs ${ENV_B}"
 
-log_info "Posting results to #claude-arena..."
+log_info "Posting results to #claude-bakeoff..."
 
 RESPONSE=$(bot_post_embed "$CLAUDE_ARENA_CHANNEL_ID" "$TITLE" "$EMBED_DESC" "$COLOR")
 MSG_ID=$(echo "$RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || true)
 
 if [ -n "$MSG_ID" ]; then
-  log_ok "Posted to #claude-arena (message $MSG_ID)"
+  log_ok "Posted to #claude-bakeoff (message $MSG_ID)"
 
   # Post full evaluation as a thread reply if the raw judge output exists
   RAW_FILE="$EVAL_DIR/${RUN_ID}_raw.txt"
