@@ -1,4 +1,4 @@
-# claude-arena
+# claude-bakeoff
 
 A/B testing framework for comparing Claude CLI results across different instruction environments.
 
@@ -12,7 +12,7 @@ Different prompting strategies, system instructions, and context configurations 
 
 ```bash
 # Add to PATH
-ln -s /path/to/claude-arena/bin/arena ~/bin/arena
+ln -s /path/to/claude-bakeoff/bin/arena ~/bin/arena
 
 # Create two instruction environments
 arena new env minimal
