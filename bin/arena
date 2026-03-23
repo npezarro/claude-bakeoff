@@ -6,7 +6,7 @@ source "$ARENA_ROOT/bin/lib/common.sh"
 
 usage() {
     cat <<'EOF'
-claude-arena — A/B testing framework for Claude CLI environments
+claude-bakeoff — A/B testing framework for Claude CLI environments
 
 Usage:
   arena run    <task> [--env-a NAME] [--env-b NAME] [--id RUN_ID]
@@ -20,7 +20,7 @@ Commands:
   run              Execute a task in both environments and capture results
   eval             Run LLM-as-judge evaluation on a completed run
   report           Display evaluation report for a run
-  discord-report   Post evaluation results to #claude-arena in Discord
+  discord-report   Post evaluation results to #claude-bakeoff in Discord
   list             List available tasks, runs, or environments
   new              Scaffold a new task or environment
 

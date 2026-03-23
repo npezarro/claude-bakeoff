@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared utilities for claude-arena
+# Shared utilities for claude-bakeoff
 
 ARENA_ROOT="${ARENA_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
