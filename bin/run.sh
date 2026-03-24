@@ -47,6 +47,7 @@ MAX_TURNS="$(config_get claude_max_turns 10)"
 # Discord platform config (exported for platform runner)
 DISCORD_CHANNEL="$(config_get discord_channel '')"
 DISCORD_BOT_ID="$(config_get discord_bot_id '')"
+DISCORD_WEBHOOK_URL="$(config_get discord_webhook_url '')"
 DISCORD_TIMEOUT="$(config_get discord_timeout 300)"
 
 log_info "Bake #$RUN_ID"
@@ -111,6 +112,7 @@ run_env() {
     export BAKE_MAX_TURNS="$MAX_TURNS"
     export BAKE_DISCORD_CHANNEL="$DISCORD_CHANNEL"
     export BAKE_DISCORD_BOT_ID="$DISCORD_BOT_ID"
+    export BAKE_DISCORD_WEBHOOK_URL="$DISCORD_WEBHOOK_URL"
     export BAKE_DISCORD_TIMEOUT="$DISCORD_TIMEOUT"
 
     # Run the platform runner

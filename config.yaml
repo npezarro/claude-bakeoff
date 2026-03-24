@@ -16,8 +16,9 @@ claude_model: ""  # empty = use default
 claude_max_turns: 10
 
 # Discord platform settings
-discord_channel: ""        # channel ID where the bot listens (required for discord platform)
-discord_bot_id: ""         # bot's Discord user ID (required for discord platform)
+discord_channel: "REDACTED_CHANNEL_ID"    # #bakeoff-arena channel
+discord_bot_id: "REDACTED_BOT_ID"     # ClaudeAgent bot user ID
+discord_webhook_url: "REDACTED_WEBHOOK_URL"
 discord_timeout: 300       # seconds to wait for bot response
 
 # Evaluation
