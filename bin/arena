@@ -6,35 +6,44 @@ source "$ARENA_ROOT/bin/lib/common.sh"
 
 usage() {
     cat <<'EOF'
-claude-bakeoff — A/B testing framework for Claude CLI environments
+claude-bakeoff — A/B testing for Claude across instruction recipes AND platforms
 
 Usage:
-  arena run    <task> [--env-a NAME] [--env-b NAME] [--id RUN_ID]
-  arena eval   <run-id>
-  arena report <run-id>
+  arena bake   <task> [--env-a NAME] [--env-b NAME] [--platform-a NAME] [--platform-b NAME]
+  arena judge  <run-id>
+  arena taste  <run-id>
   arena discord-report <run-id>
-  arena list   [tasks|runs|envs]
-  arena new    <task|env> <name>
+  arena list   [challenges|bakes|recipes|platforms]
+  arena new    <task|recipe> <name>
 
 Commands:
-  run              Execute a task in both environments and capture results
-  eval             Run LLM-as-judge evaluation on a completed run
-  report           Display evaluation report for a run
-  discord-report   Post evaluation results to #claude-bakeoff in Discord
-  list             List available tasks, runs, or environments
-  new              Scaffold a new task or environment
+  bake             Put a challenge in the oven under both recipes
+  judge            Send a completed bake to the judges
+  taste            Display the judging results
+  discord-report   Post results to #claude-bakeoff in Discord
+  list             List challenges, past bakes, recipes, or platforms
+  new              Prepare a new challenge or recipe
 
 Options:
-  --env-a NAME    Override environment A (default: from config.yaml)
-  --env-b NAME    Override environment B (default: from config.yaml)
-  --id RUN_ID     Custom run ID (default: timestamp-based)
-  -h, --help      Show this help
+  --env-a NAME       Override recipe A (default: from config.yaml)
+  --env-b NAME       Override recipe B (default: from config.yaml)
+  --platform-a NAME  Override platform A (default: cli)
+  --platform-b NAME  Override platform B (default: cli)
+  --platforms A B    Set both platforms at once
+  --id RUN_ID        Custom bake ID (default: timestamp-based)
+  -h, --help         Show this help
+
+Platforms:
+  cli              Run via local `claude --print` CLI
+  discord          Send to Discord bot channel, capture response
 
 Examples:
-  arena run csv-parser
-  arena run csv-parser --env-a minimal --env-b verbose
-  arena eval 20260319_143022
-  arena list tasks
+  arena bake csv-parser
+  arena bake csv-parser --env-a minimal --env-b verbose
+  arena bake csv-parser --platform-a cli --platform-b discord
+  arena bake csv-parser --platforms cli discord
+  arena judge 20260319_143022
+  arena list platforms
 EOF
     exit 0
 }
@@ -43,9 +52,9 @@ cmd="${1:-}"
 shift || true
 
 case "$cmd" in
-    run)            exec "$ARENA_ROOT/bin/run.sh" "$@" ;;
-    eval)           exec "$ARENA_ROOT/bin/evaluate.sh" "$@" ;;
-    report)         exec "$ARENA_ROOT/bin/report.sh" "$@" ;;
+    bake|run)       exec "$ARENA_ROOT/bin/run.sh" "$@" ;;
+    judge|eval)     exec "$ARENA_ROOT/bin/evaluate.sh" "$@" ;;
+    taste|report)   exec "$ARENA_ROOT/bin/report.sh" "$@" ;;
     discord-report) exec "$ARENA_ROOT/bin/discord-report.sh" "$@" ;;
     list)           exec "$ARENA_ROOT/bin/list.sh" "$@" ;;
     new)            exec "$ARENA_ROOT/bin/new.sh" "$@" ;;

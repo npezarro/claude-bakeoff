@@ -8,26 +8,33 @@ source "$ARENA_ROOT/bin/lib/common.sh"
 TASK=""
 ENV_A="$(config_get env_a baseline)"
 ENV_B="$(config_get env_b experimental)"
+PLATFORM_A="$(config_get platform_a cli)"
+PLATFORM_B="$(config_get platform_b cli)"
 RUN_ID=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --env-a) ENV_A="$2"; shift 2 ;;
-        --env-b) ENV_B="$2"; shift 2 ;;
-        --id)    RUN_ID="$2"; shift 2 ;;
-        -*)      log_error "Unknown option: $1"; exit 1 ;;
-        *)       TASK="$1"; shift ;;
+        --env-a)      ENV_A="$2"; shift 2 ;;
+        --env-b)      ENV_B="$2"; shift 2 ;;
+        --platform-a) PLATFORM_A="$2"; shift 2 ;;
+        --platform-b) PLATFORM_B="$2"; shift 2 ;;
+        --platforms)  PLATFORM_A="$2"; PLATFORM_B="$3"; shift 3 ;;
+        --id)         RUN_ID="$2"; shift 2 ;;
+        -*)           log_error "Unknown option: $1"; exit 1 ;;
+        *)            TASK="$1"; shift ;;
     esac
 done
 
 if [ -z "$TASK" ]; then
-    log_error "Usage: arena run <task> [--env-a NAME] [--env-b NAME]"
+    log_error "Usage: arena bake <task> [--env-a NAME] [--env-b NAME] [--platform-a NAME] [--platform-b NAME]"
     exit 1
 fi
 
 validate_task "$TASK"
 validate_env "$ENV_A"
 validate_env "$ENV_B"
+validate_platform "$PLATFORM_A"
+validate_platform "$PLATFORM_B"
 
 RUN_ID="${RUN_ID:-$(generate_run_id)}"
 RUN_DIR="$ARENA_ROOT/$(config_get runs_dir runs)/$RUN_ID"
@@ -37,10 +44,15 @@ TASK_FILE="$TASK_DIR/task.yaml"
 CLAUDE_BIN="$(config_get claude_bin claude)"
 MAX_TURNS="$(config_get claude_max_turns 10)"
 
-log_info "Run ID:  $RUN_ID"
-log_info "Task:    $TASK"
-log_info "Env A:   $ENV_A"
-log_info "Env B:   $ENV_B"
+# Discord platform config (exported for platform runner)
+DISCORD_CHANNEL="$(config_get discord_channel '')"
+DISCORD_BOT_ID="$(config_get discord_bot_id '')"
+DISCORD_TIMEOUT="$(config_get discord_timeout 300)"
+
+log_info "Bake #$RUN_ID"
+log_info "Challenge:  $TASK"
+log_info "Recipe A:   $ENV_A (platform: $PLATFORM_A)"
+log_info "Recipe B:   $ENV_B (platform: $PLATFORM_B)"
 
 # Create run directory structure
 mkdir -p "$RUN_DIR/env-a/workspace" "$RUN_DIR/env-b/workspace"
@@ -51,6 +63,8 @@ run_id: $RUN_ID
 task: $TASK
 env_a: $ENV_A
 env_b: $ENV_B
+platform_a: $PLATFORM_A
+platform_b: $PLATFORM_B
 started_at: $(date -Iseconds)
 status: running
 EOF
@@ -58,14 +72,16 @@ EOF
 # Get the task prompt
 PROMPT="$(get_task_prompt "$TASK_FILE")"
 
-# Run a single environment
+# Run a single environment via its platform runner
 run_env() {
     local label="$1"      # env-a or env-b
     local env_name="$2"   # environment name
+    local platform="$3"   # platform name
     local work_dir="$RUN_DIR/$label/workspace"
     local env_dir="$ARENA_ROOT/environments/$env_name"
+    local runner="$ARENA_ROOT/platforms/${platform}.sh"
 
-    log_info "[$label/$env_name] Setting up workspace..."
+    log_info "[$label/$env_name via $platform] Prepping the station..."
 
     # Copy seed files if task has them
     if [ -d "$TASK_DIR/workspace" ]; then
@@ -86,14 +102,19 @@ run_env() {
         cp "$f" "$work_dir/$fname"
     done
 
-    log_info "[$label/$env_name] Running Claude CLI..."
+    log_info "[$label/$env_name via $platform] Into the oven..."
 
-    # Run claude in the workspace directory, capture output
-    cd "$work_dir"
-    $CLAUDE_BIN --print \
-        --max-turns "$MAX_TURNS" \
-        --output-format json \
-        -p "$PROMPT" \
+    # Export environment for the platform runner
+    export BAKE_PROMPT="$PROMPT"
+    export BAKE_ENV_NAME="$env_name"
+    export BAKE_CLAUDE_BIN="$CLAUDE_BIN"
+    export BAKE_MAX_TURNS="$MAX_TURNS"
+    export BAKE_DISCORD_CHANNEL="$DISCORD_CHANNEL"
+    export BAKE_DISCORD_BOT_ID="$DISCORD_BOT_ID"
+    export BAKE_DISCORD_TIMEOUT="$DISCORD_TIMEOUT"
+
+    # Run the platform runner
+    "$runner" "$work_dir" \
         > "$RUN_DIR/$label/output.json" 2>"$RUN_DIR/$label/stderr.log" || true
 
     # Also save just the text response
@@ -109,19 +130,19 @@ run_env() {
     find "$work_dir" -type f ! -name "CLAUDE.md" -newer "$RUN_DIR/meta.yaml" \
         > "$RUN_DIR/$label/changed_files.txt" 2>/dev/null || true
 
-    log_ok "[$label/$env_name] Complete"
+    log_ok "[$label/$env_name via $platform] Out of the oven"
     cd "$ARENA_ROOT"
 }
 
 # Run both environments sequentially
 # (sequential to avoid Claude CLI conflicts; can parallelize later)
-run_env "env-a" "$ENV_A"
-run_env "env-b" "$ENV_B"
+run_env "env-a" "$ENV_A" "$PLATFORM_A"
+run_env "env-b" "$ENV_B" "$PLATFORM_B"
 
 # Update metadata
 sed -i "s/^status:.*/status: completed/" "$RUN_DIR/meta.yaml"
 echo "completed_at: $(date -Iseconds)" >> "$RUN_DIR/meta.yaml"
 
-log_ok "Run $RUN_ID complete"
+log_ok "Bake $RUN_ID complete — ready for judging"
 log_info "Results at: $RUN_DIR"
-log_info "Run 'arena eval $RUN_ID' to evaluate"
+log_info "Run 'arena judge $RUN_ID' to send it to the judges"

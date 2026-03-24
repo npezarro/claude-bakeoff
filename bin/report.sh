@@ -20,17 +20,17 @@ if [ ! -f "$EVAL_FILE" ]; then
 fi
 
 echo ""
-echo "═══════════════════════════════════════════════════"
-echo "  ARENA REPORT: $RUN_ID"
-echo "═══════════════════════════════════════════════════"
+echo "╔═══════════════════════════════════════════════════╗"
+echo "║          THE JUDGING  —  Bake $RUN_ID"
+echo "╚═══════════════════════════════════════════════════╝"
 echo ""
 cat "$EVAL_FILE"
 echo ""
-echo "═══════════════════════════════════════════════════"
+echo "─────────────────────────────────────────────────────"
 
 # Show raw judge reasoning if available
 RAW_FILE="$EVAL_DIR/${RUN_ID}_raw.txt"
 if [ -f "$RAW_FILE" ]; then
     echo ""
-    echo "Full judge reasoning: $RAW_FILE"
+    echo "Full judge notes: $RAW_FILE"
 fi

@@ -22,9 +22,9 @@ generate_run_id() {
 }
 
 # Logging
-log_info()  { echo "[arena] $*"; }
-log_error() { echo "[arena] ERROR: $*" >&2; }
-log_ok()    { echo "[arena] ✓ $*"; }
+log_info()  { echo "[tent] $*"; }
+log_error() { echo "[tent] ERROR: $*" >&2; }
+log_ok()    { echo "[tent] ✓ $*"; }
 
 # Validate a task exists
 validate_task() {
@@ -41,7 +41,18 @@ validate_env() {
     local env="$1"
     local env_dir="$ARENA_ROOT/environments/$env"
     if [ ! -d "$env_dir" ]; then
-        log_error "Environment '$env' not found at $env_dir"
+        log_error "Recipe '$env' not found at $env_dir"
+        exit 1
+    fi
+}
+
+# Validate a platform runner exists
+validate_platform() {
+    local platform="$1"
+    local runner="$ARENA_ROOT/platforms/${platform}.sh"
+    if [ ! -f "$runner" ]; then
+        log_error "Platform '$platform' not found at $runner"
+        log_info "Available platforms: $(ls "$ARENA_ROOT/platforms/"*.sh 2>/dev/null | xargs -I{} basename {} .sh | tr '\n' ' ')"
         exit 1
     fi
 }

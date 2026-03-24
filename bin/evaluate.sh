@@ -23,12 +23,14 @@ fi
 TASK="$(grep '^task:' "$RUN_DIR/meta.yaml" | sed 's/^task: *//')"
 ENV_A="$(grep '^env_a:' "$RUN_DIR/meta.yaml" | sed 's/^env_a: *//')"
 ENV_B="$(grep '^env_b:' "$RUN_DIR/meta.yaml" | sed 's/^env_b: *//')"
+PLATFORM_A="$(grep '^platform_a:' "$RUN_DIR/meta.yaml" | sed 's/^platform_a: *//' || echo "cli")"
+PLATFORM_B="$(grep '^platform_b:' "$RUN_DIR/meta.yaml" | sed 's/^platform_b: *//' || echo "cli")"
 TASK_FILE="$ARENA_ROOT/tasks/$TASK/task.yaml"
 
 CLAUDE_BIN="$(config_get claude_bin claude)"
 
-log_info "Evaluating run $RUN_ID"
-log_info "Task: $TASK | Env A: $ENV_A | Env B: $ENV_B"
+log_info "Judging bake $RUN_ID"
+log_info "Challenge: $TASK | Recipe A: $ENV_A ($PLATFORM_A) | Recipe B: $ENV_B ($PLATFORM_B)"
 
 # Gather responses
 RESPONSE_A="$(cat "$RUN_DIR/env-a/response.txt" 2>/dev/null || echo "(no response captured)")"
@@ -55,8 +57,15 @@ GLOBAL_CRITERIA="$(config_get judge_criteria '')"
 # Build the judge prompt
 JUDGE_PROMPT="$(cat <<JUDGE_EOF
 You are an impartial judge evaluating two AI assistant responses to the same task.
-The responses were generated under different instruction sets (Environment A and Environment B).
-You do NOT know which is the "control" or "experimental" — evaluate purely on merit.
+The responses were generated under different configurations. Evaluate purely on merit.
+
+## Configuration
+- Environment A: "$ENV_A" instruction set, running on **$PLATFORM_A** platform
+- Environment B: "$ENV_B" instruction set, running on **$PLATFORM_B** platform
+
+Note: If the platforms differ (e.g., CLI vs Discord), consider that platform differences may
+affect response format, length, and tool availability. Judge the quality of the answer itself,
+not limitations imposed by the platform.
 
 ## Task Given
 $TASK_PROMPT
@@ -69,7 +78,7 @@ Global: $GLOBAL_CRITERIA
 Task-specific:
 $EVAL_CRITERIA
 
-## Environment A Response ("$ENV_A")
+## Environment A Response ("$ENV_A" via $PLATFORM_A)
 <response_a>
 $RESPONSE_A
 </response_a>
@@ -79,7 +88,7 @@ $RESPONSE_A
 $WORKSPACE_A
 </workspace_a>
 
-## Environment B Response ("$ENV_B")
+## Environment B Response ("$ENV_B" via $PLATFORM_B)
 <response_b>
 $RESPONSE_B
 </response_b>
@@ -126,13 +135,13 @@ winner_reason: |
 JUDGE_EOF
 )"
 
-log_info "Running LLM-as-judge evaluation..."
+log_info "The judges are deliberating..."
 
 mkdir -p "$EVAL_DIR"
 
 # Run the judge
 JUDGE_OUTPUT="$($CLAUDE_BIN --print -p "$JUDGE_PROMPT" 2>/dev/null)" || {
-    log_error "Judge evaluation failed"
+    log_error "The judges couldn't reach a verdict"
     exit 1
 }
 
@@ -153,13 +162,15 @@ run_id: $RUN_ID
 task: $TASK
 env_a: $ENV_A
 env_b: $ENV_B
+platform_a: $PLATFORM_A
+platform_b: $PLATFORM_B
 evaluated_at: $(date -Iseconds)
 
 $EVAL_YAML
 EOF
 
-log_ok "Evaluation complete: $EVAL_DIR/${RUN_ID}.yaml"
-log_info "Run 'arena report $RUN_ID' to view results"
+log_ok "Judging complete: $EVAL_DIR/${RUN_ID}.yaml"
+log_info "Run 'arena taste $RUN_ID' to see the results"
 
 # Auto-post to Discord #claude-bakeoff
 if [ -f "$ARENA_ROOT/bin/discord-report.sh" ]; then
