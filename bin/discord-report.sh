@@ -16,19 +16,18 @@ CLAUDE_ARENA_CHANNEL_ID="${CLAUDE_ARENA_CHANNEL_ID:-REDACTED_CHANNEL_ID}"
 BOT_TOKEN_CACHE="$HOME/.cache/discord-bot-token"
 
 # --- Bot token resolution ---
+# Token must be pre-cached at $BOT_TOKEN_CACHE or set via DISCORD_BOT_TOKEN env var.
+# To populate the cache: echo "YOUR_TOKEN" > ~/.cache/discord-bot-token && chmod 600 ~/.cache/discord-bot-token
 _get_bot_token() {
+  if [ -n "${DISCORD_BOT_TOKEN:-}" ]; then
+    echo "$DISCORD_BOT_TOKEN"
+    return
+  fi
   if [ -f "$BOT_TOKEN_CACHE" ]; then
     cat "$BOT_TOKEN_CACHE"
     return
   fi
-  local token
-  token=$(REDACTED_SSH_COMMAND 2>/dev/null)
-  if [ -n "$token" ]; then
-    mkdir -p "$(dirname "$BOT_TOKEN_CACHE")"
-    echo "$token" > "$BOT_TOKEN_CACHE"
-    chmod 600 "$BOT_TOKEN_CACHE"
-    echo "$token"
-  fi
+  return 1
 }
 
 # --- Post to Discord channel via bot API ---
