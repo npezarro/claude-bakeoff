@@ -7,8 +7,8 @@ source "$ARENA_ROOT/bin/lib/common.sh"
 TARGET="${1:-}"
 
 case "$TARGET" in
-    tasks)
-        echo "Available tasks:"
+    tasks|challenges)
+        echo "This Week's Challenges:"
         for d in "$ARENA_ROOT/tasks"/*/; do
             [ -f "$d/task.yaml" ] || continue
             name="$(basename "$d")"
@@ -16,13 +16,13 @@ case "$TARGET" in
             printf "  %-25s %s\n" "$name" "$desc"
         done
         ;;
-    runs)
+    runs|bakes)
         RUNS_DIR="$ARENA_ROOT/$(config_get runs_dir runs)"
         if [ ! -d "$RUNS_DIR" ] || [ -z "$(ls -A "$RUNS_DIR" 2>/dev/null)" ]; then
-            echo "No runs yet."
+            echo "Nothing in the oven yet."
             exit 0
         fi
-        echo "Runs:"
+        echo "Past Bakes:"
         for d in "$RUNS_DIR"/*/; do
             [ -f "$d/meta.yaml" ] || continue
             id="$(basename "$d")"
@@ -30,19 +30,30 @@ case "$TARGET" in
             status="$(grep '^status:' "$d/meta.yaml" | sed 's/^status: *//')"
             env_a="$(grep '^env_a:' "$d/meta.yaml" | sed 's/^env_a: *//')"
             env_b="$(grep '^env_b:' "$d/meta.yaml" | sed 's/^env_b: *//')"
-            printf "  %-20s %-20s %-10s %s vs %s\n" "$id" "$task" "[$status]" "$env_a" "$env_b"
+            plat_a="$(grep '^platform_a:' "$d/meta.yaml" 2>/dev/null | sed 's/^platform_a: *//' || echo "cli")"
+            plat_b="$(grep '^platform_b:' "$d/meta.yaml" 2>/dev/null | sed 's/^platform_b: *//' || echo "cli")"
+            printf "  %-20s %-15s %-10s %s(%s) vs %s(%s)\n" "$id" "$task" "[$status]" "$env_a" "$plat_a" "$env_b" "$plat_b"
         done
         ;;
-    envs|environments)
-        echo "Available environments:"
+    envs|environments|recipes)
+        echo "Recipes:"
         for d in "$ARENA_ROOT/environments"/*/; do
             name="$(basename "$d")"
             files="$(ls "$d" | tr '\n' ', ' | sed 's/,$//')"
             printf "  %-25s (%s)\n" "$name" "$files"
         done
         ;;
+    platforms)
+        echo "Platforms:"
+        for f in "$ARENA_ROOT/platforms"/*.sh; do
+            [ -f "$f" ] || continue
+            name="$(basename "$f" .sh)"
+            desc="$(head -2 "$f" | tail -1 | sed 's/^# *//')"
+            printf "  %-15s %s\n" "$name" "$desc"
+        done
+        ;;
     *)
-        echo "Usage: arena list <tasks|runs|envs>"
+        echo "Usage: arena list <challenges|bakes|recipes|platforms>"
         exit 1
         ;;
 esac

@@ -69,7 +69,7 @@ print(json.dumps({
         'title': sys.argv[1],
         'description': sys.argv[2],
         'color': int(sys.argv[3]),
-        'footer': {'text': 'claude-bakeoff'},
+        'footer': {'text': 'The Tent'},
         'timestamp': '$(date -u '+%Y-%m-%dT%H:%M:%SZ')'
     }]
 }))
@@ -95,6 +95,8 @@ fi
 TASK=$(grep '^task:' "$EVAL_FILE" | head -1 | sed 's/^task: *//')
 ENV_A=$(grep '^env_a:' "$EVAL_FILE" | head -1 | sed 's/^env_a: *//')
 ENV_B=$(grep '^env_b:' "$EVAL_FILE" | head -1 | sed 's/^env_b: *//')
+PLATFORM_A=$(grep '^platform_a:' "$EVAL_FILE" | head -1 | sed 's/^platform_a: *//' || echo "cli")
+PLATFORM_B=$(grep '^platform_b:' "$EVAL_FILE" | head -1 | sed 's/^platform_b: *//' || echo "cli")
 WINNER=$(grep '^winner:' "$EVAL_FILE" | head -1 | sed 's/^winner: *//')
 
 # Extract scores
@@ -115,16 +117,25 @@ case "$WINNER" in
 esac
 
 # Build the embed description
+# Build platform labels
+LABEL_A="${ENV_A}"
+LABEL_B="${ENV_B}"
+[ -n "$PLATFORM_A" ] && [ "$PLATFORM_A" != "cli" ] && LABEL_A="${ENV_A} (${PLATFORM_A})"
+[ -n "$PLATFORM_B" ] && [ "$PLATFORM_B" != "cli" ] && LABEL_B="${ENV_B} (${PLATFORM_B})"
+
+# Show platform comparison in title if platforms differ
+TITLE_SUFFIX="${LABEL_A} vs ${LABEL_B}"
+
 EMBED_DESC="**Task:** \`$TASK\`
-**Env A** (\`$ENV_A\`): **${SCORE_A:-?}/10**
-**Env B** (\`$ENV_B\`): **${SCORE_B:-?}/10**
+**Recipe A** (\`$LABEL_A\`): **${SCORE_A:-?}/10**
+**Recipe B** (\`$LABEL_B\`): **${SCORE_B:-?}/10**
 **Winner:** \`$WINNER\`
 
 ${SUMMARY}
 
-**Reason:** ${WINNER_REASON}"
+**Judge's Notes:** ${WINNER_REASON}"
 
-TITLE="Arena: ${TASK} — ${ENV_A} vs ${ENV_B}"
+TITLE="The Tent: ${TASK} — ${TITLE_SUFFIX}"
 
 log_info "Posting results to #claude-bakeoff..."
 
@@ -142,7 +153,7 @@ if [ -n "$MSG_ID" ]; then
     THREAD_RESPONSE=$(curl -s -X POST "https://discord.com/api/v10/channels/${CLAUDE_ARENA_CHANNEL_ID}/messages/${MSG_ID}/threads" \
       -H "Authorization: Bot ${TOKEN}" \
       -H "Content-Type: application/json" \
-      -d "$(python3 -c "import json; print(json.dumps({'name': 'Full Judge Reasoning', 'auto_archive_duration': 1440}))")")
+      -d "$(python3 -c "import json; print(json.dumps({'name': 'Judge Notes', 'auto_archive_duration': 1440}))")")
 
     THREAD_ID=$(echo "$THREAD_RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || true)
 
@@ -154,7 +165,7 @@ if [ -n "$MSG_ID" ]; then
         bot_post "$THREAD_ID" "$CHUNK" > /dev/null
         [ -n "$RAW_CONTENT" ] && sleep 1
       done
-      log_ok "Full reasoning posted in thread"
+      log_ok "Judge's notes posted in thread"
     fi
   fi
 else

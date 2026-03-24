@@ -1,14 +1,24 @@
 # claude-bakeoff configuration
-# A/B testing framework for Claude CLI environments
+# A/B testing for Claude across instruction recipes AND platforms
 
-# Default environments to compare
+# Default recipes to compare
 env_a: baseline
 env_b: experimental
 
-# Claude CLI settings
+# Default platforms (cli | discord)
+# Each side of a bake can run on a different platform
+platform_a: cli
+platform_b: cli
+
+# Claude CLI settings (used by cli platform)
 claude_bin: claude
 claude_model: ""  # empty = use default
 claude_max_turns: 10
+
+# Discord platform settings
+discord_channel: ""        # channel ID where the bot listens (required for discord platform)
+discord_bot_id: ""         # bot's Discord user ID (required for discord platform)
+discord_timeout: 300       # seconds to wait for bot response
 
 # Evaluation
 eval_method: llm-judge        # llm-judge | diff | both
