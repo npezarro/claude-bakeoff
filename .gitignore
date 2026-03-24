@@ -1,3 +1,5 @@
 runs/
 evaluations/
 *.log
+.env
+.env.local

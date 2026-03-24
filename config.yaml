@@ -16,9 +16,8 @@ claude_model: ""  # empty = use default
 claude_max_turns: 10
 
 # Discord platform settings
-discord_channel: "REDACTED_CHANNEL_ID"    # #bakeoff-arena channel
-discord_bot_id: "REDACTED_BOT_ID"     # ClaudeAgent bot user ID
-discord_webhook_url: "REDACTED_WEBHOOK_URL"
+# Secrets loaded from ~/.config/claude-bakeoff/.env (not committed)
+# See .env.example for required variables
 discord_timeout: 300       # seconds to wait for bot response
 
 # Evaluation

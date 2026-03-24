@@ -44,10 +44,15 @@ TASK_FILE="$TASK_DIR/task.yaml"
 CLAUDE_BIN="$(config_get claude_bin claude)"
 MAX_TURNS="$(config_get claude_max_turns 10)"
 
-# Discord platform config (exported for platform runner)
-DISCORD_CHANNEL="$(config_get discord_channel '')"
-DISCORD_BOT_ID="$(config_get discord_bot_id '')"
-DISCORD_WEBHOOK_URL="$(config_get discord_webhook_url '')"
+# Discord platform config — secrets sourced from external .env, not committed
+BAKEOFF_ENV_FILE="${BAKEOFF_ENV_FILE:-$HOME/.config/claude-bakeoff/.env}"
+if [ -f "$BAKEOFF_ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    source "$BAKEOFF_ENV_FILE"
+fi
+DISCORD_CHANNEL="${BAKEOFF_DISCORD_CHANNEL:-}"
+DISCORD_BOT_ID="${BAKEOFF_DISCORD_BOT_ID:-}"
+DISCORD_WEBHOOK_URL="${BAKEOFF_DISCORD_WEBHOOK_URL:-}"
 DISCORD_TIMEOUT="$(config_get discord_timeout 300)"
 
 log_info "Bake #$RUN_ID"
