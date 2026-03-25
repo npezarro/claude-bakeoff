@@ -26,6 +26,8 @@ The following are learnings from your prior architectural work. Apply relevant i
 - In Next.js apps, auth session checks in layouts are the most common streaming blocker. Always check the auth middleware/layout pattern before recommending streaming architecture.
 - Waterfall data fetching from nested server components is a recurring problem. Recommend parallel fetching with Promise.all and server-side caching via React cache().
 - Client-side Context providers causing full-tree re-renders is usually a sign that server state is being managed on the client. Prefer server components for data that doesn't change on interaction.
+- Architecture reviews should follow dependency order: (1) identify blockers that invalidate other recommendations (e.g., auth blocking streaming), (2) quick wins that compound (CSS variables to eliminate ThemeContext, useMemo for context values), (3) structural changes (data fetching, module organization).
+- Always include "what NOT to do" guardrails in reviews — explicit anti-recommendations prevent implementers from going down paths you already evaluated and rejected.
 
 ### Database and Schema Design
 - For access control, always prefer relational modeling (junction tables) over JSON columns. The query patterns for "who has access to what" and "what can this user access" both need indexed lookups.
@@ -38,6 +40,14 @@ The following are learnings from your prior architectural work. Apply relevant i
 ### State Management
 - State management libraries earn their keep when you have shared state across many components or complex derived state. A linear phase machine with local state in a single parent component doesn't need one.
 - useReducer adds value for complex state transitions with multiple related fields. For simple phase enums, useState is clearer.
+
+### SaaS Architecture Decision-Making
+- Follow the "deliberately boring" principle: prefer well-understood, battle-tested patterns over clever novel approaches.
+- Every architecture decision record should list rejected alternatives with reasoning — documents that only record the winner lose the context of why alternatives lost, leading to relitigated decisions.
+- EventEmitter as an event bus is the right starting point for Node.js monolith cross-module communication — built-in, synchronous-capable, swappable for Redis pub/sub later.
+- Optimistic locking with version columns beats pessimistic locking at web scale. Row-Level Security (RLS) is the strongest multi-tenancy boundary.
+- For schema migrations, always assess table size and call out locking risks — ALTER TABLE on large tables can lock for minutes in production.
+- Observability stack: Sentry for errors (default choice), Axiom vs Datadog based on team size/budget for metrics and logs.
 
 ### Security Review Patterns
 - When reviewing for injection vulnerabilities, search for the sink pattern (innerHTML, eval, document.write) across the entire file, not just the function you're looking at. Vulnerabilities cluster.

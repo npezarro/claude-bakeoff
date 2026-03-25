@@ -13,6 +13,7 @@ Usage:
   arena judge  <run-id>
   arena taste  <run-id>
   arena discord-report <run-id>
+  arena merge  <run-id>
   arena list   [challenges|bakes|recipes|platforms]
   arena new    <task|recipe> <name>
 
@@ -21,6 +22,7 @@ Commands:
   judge            Send a completed bake to the judges
   taste            Display the judging results
   discord-report   Post results to #claude-bakeoff in Discord
+  merge            Synthesize the best of both recipes into a merged response
   list             List challenges, past bakes, recipes, or platforms
   new              Prepare a new challenge or recipe
 
@@ -54,6 +56,7 @@ shift || true
 case "$cmd" in
     bake|run)       exec "$ARENA_ROOT/bin/run.sh" "$@" ;;
     judge|eval)     exec "$ARENA_ROOT/bin/evaluate.sh" "$@" ;;
+    merge)          exec "$ARENA_ROOT/bin/merge.sh" "$@" ;;
     taste|report)   exec "$ARENA_ROOT/bin/report.sh" "$@" ;;
     discord-report) exec "$ARENA_ROOT/bin/discord-report.sh" "$@" ;;
     list)           exec "$ARENA_ROOT/bin/list.sh" "$@" ;;
