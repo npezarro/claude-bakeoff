@@ -1,0 +1,52 @@
+name: arch-review
+description: Review a Next.js app architecture and propose concrete improvements for specific pain points
+
+prompt: |
+  Review the architecture of a Next.js 14 application with the following characteristics:
+
+  **Current structure:**
+  - App Router with 12 routes, all using server components
+  - Prisma ORM with PostgreSQL
+  - Server Actions for all mutations (no API routes)
+  - NextAuth for authentication, session check in root layout.tsx
+  - 3 nested React Context providers in a client-side Providers wrapper (AuthContext, ThemeContext, NotificationContext)
+  - File organization: one directory per concern (components/, hooks/, lib/, types/, actions/)
+
+  **Reported problems:**
+  1. Pages take 2-3 seconds to load because data fetching in nested server components creates waterfalls (parent fetches, renders, then child fetches)
+  2. The Context providers cause unnecessary re-renders — changing the theme re-renders every component that reads AuthContext because they share a provider tree
+  3. Adding a new feature (e.g., "add comments to posts") requires touching 5+ directories: components/, hooks/, lib/, types/, actions/
+  4. The team of 3 developers frequently has merge conflicts in shared files like Providers.tsx and the root layout
+
+  **Constraints:**
+  - Team of 3 developers, shipping weekly
+  - ~2000 daily active users
+  - Cannot do a full rewrite, must be incremental
+
+  Provide a concrete architectural improvement plan with:
+  1. Root cause analysis for each problem
+  2. Specific patterns and file structure changes
+  3. Migration steps with ordering and risk assessment
+  4. What to do first vs what can wait
+
+eval_criteria:
+  - identifies root causes, not just symptoms
+  - proposes concrete file and folder changes with examples
+  - considers migration risk and sequencing (what to change first)
+  - recommends patterns appropriate for the actual scale (3 devs, 2000 DAU)
+  - references specific Next.js capabilities (parallel routes, streaming, cache)
+  - acknowledges constraints and trade-offs honestly
+  - provides actionable next steps, not just theory
+
+expected_behavior: |
+  A structured plan addressing: (1) data fetching — parallel queries via Promise.all
+  or React cache(), acknowledging the auth session blocker for streaming; (2) state
+  management — splitting Context providers or moving server state out of client Context;
+  (3) code organization — feature-based modules to reduce cross-directory changes;
+  (4) migration ordering — what to tackle first based on effort/impact ratio.
+  Should calibrate to the 3-person team and avoid over-engineering.
+
+tags:
+  - architecture
+  - nextjs
+  - persona-test

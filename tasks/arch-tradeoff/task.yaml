@@ -1,0 +1,54 @@
+name: arch-tradeoff
+description: Make and defend an architectural decision for a new SaaS product with specific constraints
+
+prompt: |
+  A team is building a new SaaS product for small business inventory management. Here are the specifics:
+
+  **Team and timeline:**
+  - 4 developers (2 senior, 2 mid-level)
+  - MVP in 3 months, GA in 6 months
+  - Series A funded, runway for 18 months
+
+  **Product domains:**
+  - User management: auth, roles, team invitations, billing
+  - Inventory: products, categories, stock levels, suppliers, purchase orders
+  - Analytics: stock movement reports, low-stock alerts, trend dashboards
+
+  **Scale expectations:**
+  - Year 1: ~1,000 businesses, ~5,000 users
+  - Year 2: ~10,000 businesses, ~50,000 users
+  - Peak load: ~100 concurrent users during business hours
+
+  **Tech constraints:**
+  - Team knows TypeScript, React, Node.js, and PostgreSQL well
+  - Budget for managed services (not self-hosting infrastructure)
+  - Need real-time stock updates when multiple users edit simultaneously
+
+  Provide your architectural recommendation covering:
+  1. Monolith vs microservices vs modular monolith — pick one and defend it
+  2. Where to draw the boundaries between domains
+  3. Specific technology choices with justification
+  4. What to build now vs defer
+  5. Honest assessment of what could go wrong with your approach
+  6. At what point would you recommend re-evaluating the architecture
+
+eval_criteria:
+  - recommendation is calibrated to team size (4 devs) and expected scale
+  - identifies specific trade-offs with honest downsides of the chosen approach
+  - provides a clear decision framework, not just an opinion
+  - considers the real-time requirement specifically
+  - gives a concrete migration path if the initial choice needs to change
+  - distinguishes between "build now" and "defer" with reasoning
+  - practical and actionable, not textbook theoretical
+
+expected_behavior: |
+  Should recommend a modular monolith or similar right-sized approach for a 4-dev team
+  at 1K business scale. Should NOT recommend microservices at this scale. Should address
+  real-time via WebSockets or SSE. Should give specific tech stack choices (e.g., Next.js
+  vs separate frontend/backend) with reasoning tied to the team's skills. Should include
+  honest failure modes and a "when to reconsider" trigger.
+
+tags:
+  - architecture
+  - system-design
+  - persona-test
