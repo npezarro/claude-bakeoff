@@ -4,9 +4,20 @@ set -euo pipefail
 ARENA_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ARENA_ROOT/bin/lib/common.sh"
 
-RUN_ID="${1:-}"
+# Parse args
+RUN_ID=""
+export NO_OUTPUT_FOLDER="${NO_OUTPUT_FOLDER:-false}"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --no-output-folder) NO_OUTPUT_FOLDER=true; shift ;;
+        -*)                 log_error "Unknown option: $1"; exit 1 ;;
+        *)                  RUN_ID="$1"; shift ;;
+    esac
+done
+
 if [ -z "$RUN_ID" ]; then
-    log_error "Usage: arena merge <run-id>"
+    log_error "Usage: arena merge <run-id> [--no-output-folder]"
     exit 1
 fi
 
@@ -110,3 +121,6 @@ if [ -f "$ARENA_ROOT/bin/discord-report.sh" ]; then
     log_info "Posting merge results to Discord..."
     "$ARENA_ROOT/bin/discord-report.sh" "$RUN_ID" || log_error "Discord report failed (non-fatal)"
 fi
+
+# Update the output folder with the merged file
+collect_output_folder "$RUN_ID"

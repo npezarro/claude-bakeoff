@@ -11,6 +11,7 @@ ENV_B="$(config_get env_b experimental)"
 PLATFORM_A="$(config_get platform_a cli)"
 PLATFORM_B="$(config_get platform_b cli)"
 RUN_ID=""
+export NO_OUTPUT_FOLDER=false
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -20,6 +21,7 @@ while [ $# -gt 0 ]; do
         --platform-b) PLATFORM_B="$2"; shift 2 ;;
         --platforms)  PLATFORM_A="$2"; PLATFORM_B="$3"; shift 3 ;;
         --id)         RUN_ID="$2"; shift 2 ;;
+        --no-output-folder) NO_OUTPUT_FOLDER=true; shift ;;
         -*)           log_error "Unknown option: $1"; exit 1 ;;
         *)            TASK="$1"; shift ;;
     esac

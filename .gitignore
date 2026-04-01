@@ -1,5 +1,6 @@
 runs/
 evaluations/
+bakeoff-*/
 *.log
 .env
 .env.local

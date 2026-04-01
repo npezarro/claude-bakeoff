@@ -16,13 +16,19 @@ Usage:
   arena merge  <run-id>
   arena list   [challenges|bakes|recipes|platforms]
   arena new    <task|recipe> <name>
+  arena auto   "<description>" [--no-judge] [--dry-run]
+  arena apply  <run-id> --profile <name>
+  arena distill --profile <name>
 
 Commands:
+  auto             Describe what to test; Claude designs and runs the experiment
   bake             Put a challenge in the oven under both recipes
   judge            Send a completed bake to the judges
   taste            Display the judging results
   discord-report   Post results to #claude-bakeoff in Discord
   merge            Synthesize the best of both recipes into a merged response
+  apply            Apply bakeoff learnings to an agentGuidance profile
+  distill          Condense a profile's experience log into top patterns
   list             List challenges, past bakes, recipes, or platforms
   new              Prepare a new challenge or recipe
 
@@ -33,6 +39,7 @@ Options:
   --platform-b NAME  Override platform B (default: cli)
   --platforms A B    Set both platforms at once
   --id RUN_ID        Custom bake ID (default: timestamp-based)
+  --no-output-folder Skip creating bakeoff-<task>/ output folder
   -h, --help         Show this help
 
 Platforms:
@@ -46,6 +53,8 @@ Examples:
   arena bake csv-parser --platforms cli discord
   arena judge 20260319_143022
   arena list platforms
+  arena auto "Compare architect persona debugging vs baseline"
+  arena auto --dry-run "Which voice style sounds more like me"
 EOF
     exit 0
 }
@@ -54,9 +63,12 @@ cmd="${1:-}"
 shift || true
 
 case "$cmd" in
+    auto)           exec "$ARENA_ROOT/bin/auto.sh" "$@" ;;
     bake|run)       exec "$ARENA_ROOT/bin/run.sh" "$@" ;;
     judge|eval)     exec "$ARENA_ROOT/bin/evaluate.sh" "$@" ;;
     merge)          exec "$ARENA_ROOT/bin/merge.sh" "$@" ;;
+    apply)          exec "$ARENA_ROOT/bin/apply.sh" "$@" ;;
+    distill)        exec "$ARENA_ROOT/bin/distill.sh" "$@" ;;
     taste|report)   exec "$ARENA_ROOT/bin/report.sh" "$@" ;;
     discord-report) exec "$ARENA_ROOT/bin/discord-report.sh" "$@" ;;
     list)           exec "$ARENA_ROOT/bin/list.sh" "$@" ;;
