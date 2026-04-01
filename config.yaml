@@ -32,3 +32,4 @@ judge_criteria:
 # Output
 runs_dir: runs
 evaluations_dir: evaluations
+output_folder: true            # save structured results to bakeoff-<taskname>/ after judging

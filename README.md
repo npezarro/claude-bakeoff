@@ -72,6 +72,28 @@ tags:
   - python
 ```
 
+## Output Folder
+
+By default, after judging (`arena judge`) or merging (`arena merge`), results are collected into a `bakeoff-<taskname>/` folder in the repo root. This folder contains:
+
+- **`track-1-<env-a-name>.md`** — Full chain of thought + output from environment A
+- **`track-2-<env-b-name>.md`** — Full chain of thought + output from environment B
+- **`judging-results.yaml`** — Structured evaluation scores and verdict
+- **`judging-notes.md`** — Raw judge reasoning (full deliberation)
+- **`merged-recommended.md`** — Synthesized best-of-both output (created after `arena merge`)
+
+To disable this behavior:
+
+```bash
+# Per-invocation: skip the output folder
+arena bake my-task --no-output-folder
+arena judge 20260319_143022 --no-output-folder
+arena auto "test something" --no-output-folder
+
+# Permanently: set in config.yaml
+output_folder: false
+```
+
 ## How It Works
 
 1. Creates isolated workspaces for each environment
