@@ -1,0 +1,41 @@
+name: sander-buying-guide
+description: Test buying assistant approaches against a real sander purchasing decision
+
+prompt: |
+  I need to strip the finish off a wooden tabletop. The existing finish is thick and dark.
+  Currently I'm using a sanding attachment on my cordless drill and it's painfully slow.
+  I want a power sander that will get this done significantly faster.
+
+  Requirements:
+  - Must be available to buy online with delivery
+  - Budget: up to ~$150, but willing to go higher if there's a clear reason
+  - I want something that won't gouge or damage the wood surface
+  - This is primarily a one-table project, but I might use it again for similar work
+  - I have Amazon Prime and Walmart+ memberships
+  - I have a Rakuten cashback account
+  - Used/refurb is acceptable if the savings are significant
+
+  Give me your full buying guide including what sander to buy, what grit sandpaper
+  to get with it, and exactly where to buy it for the best price.
+
+eval_criteria:
+  - Correctly identifies random orbital sander as the right tool (not belt sander for furniture)
+  - Provides exact model numbers and current prices with sources
+  - Includes grit progression recommendation (60/80/120)
+  - Accounts for Amazon Prime and Walmart+ in price optimization
+  - Mentions cashback stacking opportunities (Rakuten)
+  - Warns about belt sander risks on furniture/veneer
+  - Addresses consumables cost (sandpaper discs)
+  - Distinguishes between one-project vs ongoing use recommendations
+
+expected_behavior: |
+  A comprehensive buying guide that recommends a random orbital sander (likely DeWalt DWE6423
+  or similar) as the best tool for furniture finish stripping. Should warn against belt sanders
+  for this use case. Should include a grit progression (60 -> 80 -> 120), price optimization
+  using Prime/Walmart+/Rakuten, and clear verdict. The best guides will also mention that
+  extra sandpaper discs matter more than sander upgrades for this specific job.
+
+tags:
+  - buying-guide
+  - tools
+  - home-improvement
