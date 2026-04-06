@@ -12,7 +12,7 @@ set -euo pipefail
 ARENA_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ARENA_ROOT/bin/lib/common.sh"
 
-CLAUDE_ARENA_CHANNEL_ID="${CLAUDE_ARENA_CHANNEL_ID:-REDACTED_CHANNEL_ID}"
+CLAUDE_ARENA_CHANNEL_ID="${CLAUDE_ARENA_CHANNEL_ID:?Set CLAUDE_ARENA_CHANNEL_ID in env}"
 BOT_TOKEN_CACHE="$HOME/.cache/discord-bot-token"
 
 # --- Bot token resolution ---
