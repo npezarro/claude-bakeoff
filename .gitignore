@@ -4,3 +4,8 @@ bakeoff-*/
 *.log
 .env
 .env.local
+.env.*
+node_modules/
+*.pem
+*.key
+.DS_Store
