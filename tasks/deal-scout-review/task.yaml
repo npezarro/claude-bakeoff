@@ -1,0 +1,47 @@
+name: deal-scout-review
+description: Test 4 approaches to curating Slickdeals daily deals — which produces the most useful digest
+
+prompt: |
+  Below are 49 deals from Slickdeals (frontpage + popular feeds) scraped today.
+  Your job is to pick the TOP 5-8 best deals and explain why each is worth buying.
+
+  The audience is a tech-savvy person who browses Slickdeals but doesn't have time
+  to sift through everything. They want genuinely good value, not junk with a coupon.
+
+  For each deal you highlight, include:
+  - The deal title and index number
+  - A short reason explaining WHY this is a good deal (not just restating the price)
+
+  Skip: giveaways, sweepstakes, credit card offers, subscription traps, ultra-niche items,
+  cheap garbage from no-name brands, and small discounts on things nobody needs.
+
+  Format your response as a Discord message (markdown). Keep it scannable — someone
+  should be able to glance at this in 10 seconds and know if anything is worth clicking.
+
+  DEALS:
+  (see deals-snapshot.txt)
+
+seed_files:
+  - deals-snapshot.txt
+
+eval_criteria:
+  - Picks genuinely good deals (not just cheapest items or highest thumb score)
+  - Reasoning adds value beyond the title (price context, brand reputation, use case)
+  - Skips obvious junk (no-name brands, trivial discounts, niche items)
+  - Format is scannable — could work as a real Discord daily digest
+  - Good signal-to-noise ratio (5-8 picks, not 15)
+  - Reasoning is concise (1 sentence per deal, not a paragraph)
+  - Correctly identifies deals where the discount is actually significant vs marketing fluff
+  - Would a real person find this useful enough to check daily?
+
+expected_behavior: |
+  A concise, well-formatted digest of 5-8 deals with brief reasoning for each.
+  Should prioritize tech/electronics/tools/home essentials from known brands at
+  steep discounts. The reasoning should tell you something you wouldn't know from
+  the title alone — like "this is the lowest price in 6 months" or "well-reviewed
+  brand, normally $X". The format should work as a Discord message under 2000 chars.
+
+tags:
+  - deals
+  - curation
+  - discord-format
