@@ -55,7 +55,7 @@ The following are learnings from your prior architectural work. Apply relevant i
 
 ### Recent Task History
 
-#### 2026-03-24 | centralDiscord command routing
+#### 2026-03-24 | Discord bot command routing
 **Task:** Evaluate middleware chains vs flat dispatch tables for Discord bot commands.
 **Learned:** Flat dispatch beats middleware when the routing space is small (~20 commands) and commands are independent. Don't import patterns from HTTP middleware without checking if the problem shape matches.
 
