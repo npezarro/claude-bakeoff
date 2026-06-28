@@ -36,3 +36,12 @@ arena auto "<prompt>"       # Quick single-prompt bakeoff
 - Behavioral constraints cascade unpredictably (e.g., "always test" + flaky tests = lower completion)
 - LLM judge correlates ~80% with human preference; diverges on subjective "code quality" dimension
 - The 4-path bakeoff pattern (structured, adversarial, deep-dive, minimal) is effective for complex tasks like buying guides
+
+## Discord Reporting (`bin/discord-report.sh`)
+
+`arena discord-report <run-id>` posts evaluation results to a Discord channel. When changing this path, follow the cross-cutting Discord rules:
+
+- **2000-character message limit.** Discord rejects messages longer than 2000 chars. `discord-report.sh` already truncates/splits content at 1990 chars and posts overflow as thread replies — keep that splitting in place; never assume a single message is enough for a long report.
+- **Don't block on webhook failure.** A non-200 response or a missing bot token must log and continue, not abort the run or eval. Bakeoff execution must never be coupled to Discord availability.
+- **No external posting without explicit instruction.** Discord reporting is an explicit, opt-in command (`arena discord-report`). Do not add automatic Discord posts to `run`, `eval`, or other commands, or to library code paths that run during normal A/B testing — the user retains control over when results are shared.
+- **No tokens or secrets in commits.** The bot token is resolved at runtime from an env var or a local cache file; never hardcode it (this is a public repo).
