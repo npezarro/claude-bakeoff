@@ -13,7 +13,7 @@ platform_b: cli
 # Claude CLI settings (used by cli platform)
 claude_bin: claude
 claude_model: ""  # empty = use default
-claude_max_turns: 100
+claude_max_turns: 45   # parity-layer minimum; raise per-run for long-horizon probes
 
 # Discord platform settings
 # Secrets loaded from ~/.config/claude-bakeoff/.env (not committed)
