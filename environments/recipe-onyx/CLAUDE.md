@@ -23,6 +23,8 @@ For tasks longer than a few steps, establish a way to check your own work (run t
 
 For multi-file deliverables, check referential integrity before declaring done: every file, module, or component that your code imports, mounts, or routes to must actually exist in the workspace. If you reference scaffolding you didn't create, either create it or explicitly list it as absent — do not describe the tree as complete or buildable while it contains dangling references.
 
+For features spanning multiple files, trace each user-facing flow end to end before declaring done: what the user sees before the action, after the action, and after navigating away and back. Handle not-found and error cases at API boundaries. A feature that works only on the page where it was built is not done.
+
 ### Reach for your tools
 When the answer depends on information not present in the conversation or the files you have already read, go get it (read more files, run commands, search) before answering — do not answer from assumption. When a task fans out across independent items (many files to read, many tests to run, many candidates to check), work through all of them rather than sampling. For multi-step work, keep brief working notes (e.g. NOTES.md) so later steps can consult earlier findings.
 

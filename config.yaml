@@ -13,7 +13,7 @@ platform_b: cli
 # Claude CLI settings (used by cli platform)
 claude_bin: claude
 claude_model: ""  # empty = use default
-claude_max_turns: 25
+claude_max_turns: 45
 
 # Discord platform settings
 # Secrets loaded from ~/.config/claude-bakeoff/.env (not committed)
