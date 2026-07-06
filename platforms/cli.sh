@@ -23,8 +23,12 @@ if [ -n "$MODEL" ]; then
 fi
 
 cd "$WORKSPACE_DIR"
+# Bakes run headless in isolated throwaway workspaces: nobody is present to
+# approve tool permissions, so a run without bypass gets crippled (agents can't
+# write files or execute code) and the comparison is invalid.
 exec $CLAUDE_BIN --print \
     --max-turns "$MAX_TURNS" \
     --output-format json \
+    --dangerously-skip-permissions \
     "${MODEL_ARGS[@]}" \
     -p "$PROMPT"
