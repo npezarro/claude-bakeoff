@@ -13,7 +13,7 @@ platform_b: cli
 # Claude CLI settings (used by cli platform)
 claude_bin: claude
 claude_model: ""  # empty = use default
-claude_max_turns: 10
+claude_max_turns: 25
 
 # Discord platform settings
 # Secrets loaded from ~/.config/claude-bakeoff/.env (not committed)
@@ -22,7 +22,7 @@ discord_timeout: 300       # seconds to wait for bot response
 
 # Evaluation
 eval_method: llm-judge        # llm-judge | diff | both
-judge_model: ""               # empty = use same claude CLI
+judge_model: "claude-fable-5"    # pinned: consistent discriminating judge; arms are blind-named
 judge_criteria:
   - correctness
   - completeness

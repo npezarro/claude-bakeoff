@@ -5,7 +5,7 @@
 # Interface:
 #   stdin:  (unused)
 #   args:   <workspace_dir>
-#   env:    BAKE_PROMPT, BAKE_ENV_NAME, BAKE_CLAUDE_BIN, BAKE_MAX_TURNS
+#   env:    BAKE_PROMPT, BAKE_ENV_NAME, BAKE_CLAUDE_BIN, BAKE_MAX_TURNS, BAKE_MODEL
 #   stdout: JSON output from claude CLI
 #   exit:   0 on success
 
@@ -15,9 +15,16 @@ WORKSPACE_DIR="${1:?Usage: cli.sh <workspace_dir>}"
 CLAUDE_BIN="${BAKE_CLAUDE_BIN:-claude}"
 MAX_TURNS="${BAKE_MAX_TURNS:-10}"
 PROMPT="${BAKE_PROMPT:?BAKE_PROMPT is required}"
+MODEL="${BAKE_MODEL:-}"
+
+MODEL_ARGS=()
+if [ -n "$MODEL" ]; then
+    MODEL_ARGS=(--model "$MODEL")
+fi
 
 cd "$WORKSPACE_DIR"
 exec $CLAUDE_BIN --print \
     --max-turns "$MAX_TURNS" \
     --output-format json \
+    "${MODEL_ARGS[@]}" \
     -p "$PROMPT"

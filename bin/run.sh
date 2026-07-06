@@ -107,8 +107,19 @@ run_env() {
         local fname
         fname="$(basename "$f")"
         [ "$fname" = "CLAUDE.md" ] && continue
+        [ "$fname" = "model" ] && continue
         cp "$f" "$work_dir/$fname"
     done
+
+    # Per-environment model override: environments/<name>/model holds a model ID
+    # (e.g. claude-fable-5). Falls back to global claude_model from config.yaml.
+    local env_model
+    env_model="$(config_get claude_model "")"
+    if [ -f "$env_dir/model" ]; then
+        env_model="$(head -1 "$env_dir/model" | tr -d '[:space:]')"
+    fi
+    export BAKE_MODEL="$env_model"
+    echo "model_${label//-/_}: ${env_model:-default}" >> "$RUN_DIR/meta.yaml"
 
     log_info "[$label/$env_name via $platform] Into the oven..."
 

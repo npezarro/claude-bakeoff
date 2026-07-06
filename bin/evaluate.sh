@@ -151,7 +151,12 @@ log_info "The judges are deliberating..."
 mkdir -p "$EVAL_DIR"
 
 # Run the judge
-JUDGE_OUTPUT="$($CLAUDE_BIN --print -p "$JUDGE_PROMPT" 2>/dev/null)" || {
+JUDGE_MODEL="$(config_get judge_model "")"
+JUDGE_MODEL_ARGS=()
+if [ -n "$JUDGE_MODEL" ]; then
+    JUDGE_MODEL_ARGS=(--model "$JUDGE_MODEL")
+fi
+JUDGE_OUTPUT="$($CLAUDE_BIN --print "${JUDGE_MODEL_ARGS[@]}" -p "$JUDGE_PROMPT" 2>/dev/null)" || {
     log_error "The judges couldn't reach a verdict"
     exit 1
 }
