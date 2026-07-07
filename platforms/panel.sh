@@ -50,7 +50,8 @@ Produce the single definitive review:
 2. Dedupe overlapping findings (keep the better-explained version).
 3. Drop findings that are factually wrong about the code (verify each claim against the code in this directory before keeping it).
 4. Rank by severity (critical, warning, nit), keep the acknowledge-what's-done-well section.
-5. Output a single polished review in the format the original task asked for. Do not mention that multiple reviewers or a merge existed.
+5. Precision beats breadth: when in doubt whether a finding is real, verify it against the code; if you cannot verify it, DROP it. Do not inflate severity, do not pad with speculative or stylistic filler — a tight report of verified findings wins.
+6. Output a single polished review in the format the original task asked for. Do not mention that multiple reviewers or a merge existed.
 
 ORIGINAL TASK:
 $PROMPT
