@@ -51,14 +51,31 @@ log_info "Challenge: $TASK | Recipe A: $ENV_A ($PLATFORM_A) | Recipe B: $ENV_B (
 RESPONSE_A="$(cat "$RUN_DIR/env-a/response.txt" 2>/dev/null || echo "(no response captured)")"
 RESPONSE_B="$(cat "$RUN_DIR/env-b/response.txt" 2>/dev/null || echo "(no response captured)")"
 
-# Gather workspace diffs (files created/changed by each env)
+# Gather workspace diffs (files created/changed by each env).
+# Capped and junk-excluded: a 14MB node_modules workspace once blew the argv
+# limit and silently killed the judge (e1-multi/mh1, 2026-07-06).
+dump_workspace() {
+    local dir="$1"
+    find "$dir" -type f ! -name 'CLAUDE.md' \
+        ! -path '*node_modules*' ! -path '*/.git/*' ! -path '*__pycache__*' \
+        ! -name '*.db' ! -name '*.sqlite*' ! -name '*.lock' ! -name 'package-lock.json' \
+        ! -name '*.png' ! -name '*.jpg' ! -name '*.gif' \
+        -size -200k -print0 2>/dev/null | sort -z | while IFS= read -r -d '' f; do
+            echo "--- $f ---"
+            head -c 6000 "$f"
+            if [ "$(wc -c < "$f")" -gt 6000 ]; then echo; echo "... [truncated at 6KB]"; fi
+            echo
+    done | head -c 300000
+}
 WORKSPACE_A=""
 WORKSPACE_B=""
 if [ -d "$RUN_DIR/env-a/workspace" ]; then
-    WORKSPACE_A="$(find "$RUN_DIR/env-a/workspace" -type f ! -name 'CLAUDE.md' -exec echo "--- {} ---" \; -exec cat {} \; 2>/dev/null || echo "(empty)")"
+    WORKSPACE_A="$(dump_workspace "$RUN_DIR/env-a/workspace")"
+    [ -n "$WORKSPACE_A" ] || WORKSPACE_A="(empty)"
 fi
 if [ -d "$RUN_DIR/env-b/workspace" ]; then
-    WORKSPACE_B="$(find "$RUN_DIR/env-b/workspace" -type f ! -name 'CLAUDE.md' -exec echo "--- {} ---" \; -exec cat {} \; 2>/dev/null || echo "(empty)")"
+    WORKSPACE_B="$(dump_workspace "$RUN_DIR/env-b/workspace")"
+    [ -n "$WORKSPACE_B" ] || WORKSPACE_B="(empty)"
 fi
 
 # Get task context
@@ -160,7 +177,7 @@ JUDGE_MODEL_ARGS=()
 if [ -n "$JUDGE_MODEL" ]; then
     JUDGE_MODEL_ARGS=(--model "$JUDGE_MODEL")
 fi
-JUDGE_OUTPUT="$($CLAUDE_BIN --print "${JUDGE_MODEL_ARGS[@]}" -p "$JUDGE_PROMPT" 2>/dev/null)" || {
+JUDGE_OUTPUT="$(printf '%s' "$JUDGE_PROMPT" | $CLAUDE_BIN --print "${JUDGE_MODEL_ARGS[@]}" 2>/dev/null)" || {
     log_error "The judges couldn't reach a verdict"
     exit 1
 }
