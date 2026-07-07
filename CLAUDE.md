@@ -9,6 +9,8 @@ A/B testing framework for comparing Claude CLI instruction environments. Tests d
 - **Tasks:** `tasks/<name>/task.yaml` — prompt, eval criteria, expected behavior
 - **Runs:** `runs/<timestamp>/` — captured outputs (gitignored)
 - **Evaluations:** `evaluations/<timestamp>.yaml` — LLM judge verdicts (gitignored)
+- **Platforms:** `platforms/<name>.sh` — pluggable execution backends selected via `platform_a`/`platform_b` in `config.yaml`. Interface: `BAKE_PROMPT`/`BAKE_MODEL`/`BAKE_MAX_TURNS`/`BAKE_EFFORT` env in, JSON with a `.result` field out. Available: `cli` (local `claude` CLI), `discord` (routes through #bakeoff-arena), `bestof` (runs `agentGuidance/scripts/bestof-claude.sh` with 2 parallel instances and keeps the judged winner).
+- **Per-environment model:** `environments/<name>/model` — optional file holding a model ID (e.g. `claude-fable-5`) that overrides the global `claude_model` config for that environment only.
 
 ## Key Rules
 
@@ -17,6 +19,7 @@ A/B testing framework for comparing Claude CLI instruction environments. Tests d
 3. **Baseline must stay minimal.** `environments/baseline/CLAUDE.md` is the control. Don't add rules to it.
 4. **Task eval criteria drive the judge.** Write specific, measurable criteria in `task.yaml`. Vague criteria ("good quality") produce unreliable judge scores.
 5. **Runs and evaluations are gitignored.** Don't force-add them. Results that matter get distilled into the environment or agentGuidance.
+6. **`cli` platform runs with `--dangerously-skip-permissions`.** Bakes execute headless in isolated throwaway workspaces with nobody present to approve tool permissions, so this is required for a valid comparison (otherwise agents can't write files or run code).
 
 ## Workflow
 
@@ -28,7 +31,11 @@ arena eval <run-id>         # LLM judge comparison
 arena report <run-id>       # View results
 arena merge <run-id>        # Synthesize best-of-both
 arena auto "<prompt>"       # Quick single-prompt bakeoff
+arena eval <run-id> --judge-model <model>  # Override config.yaml judge_model for this eval
+arena eval <run-id> --suffix <suffix>      # Write eval output as <run-id><suffix>.yaml instead of overwriting; skips Discord auto-post
 ```
+
+`config.yaml` settings relevant to a run: `claude_max_turns` (default 45), `claude_effort` (passed through as `BAKE_EFFORT`), `judge_model` (default `claude-fable-5`, pinned for a consistent discriminating judge). A `task.yaml`'s own `max_turns:` field overrides `claude_max_turns` for that task.
 
 ## Patterns Learned
 
