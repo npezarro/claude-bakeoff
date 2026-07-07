@@ -8,9 +8,13 @@ source "$ARENA_ROOT/bin/lib/common.sh"
 RUN_ID=""
 export NO_OUTPUT_FOLDER="${NO_OUTPUT_FOLDER:-false}"
 
+JUDGE_MODEL_OVERRIDE=""
+EVAL_SUFFIX=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --no-output-folder) NO_OUTPUT_FOLDER=true; shift ;;
+        --judge-model)      JUDGE_MODEL_OVERRIDE="$2"; shift 2 ;;
+        --suffix)           EVAL_SUFFIX="$2"; shift 2 ;;
         -*)                 log_error "Unknown option: $1"; exit 1 ;;
         *)                  RUN_ID="$1"; shift ;;
     esac
@@ -151,7 +155,7 @@ log_info "The judges are deliberating..."
 mkdir -p "$EVAL_DIR"
 
 # Run the judge
-JUDGE_MODEL="$(config_get judge_model "")"
+JUDGE_MODEL="${JUDGE_MODEL_OVERRIDE:-$(config_get judge_model "")}"
 JUDGE_MODEL_ARGS=()
 if [ -n "$JUDGE_MODEL" ]; then
     JUDGE_MODEL_ARGS=(--model "$JUDGE_MODEL")
@@ -162,7 +166,7 @@ JUDGE_OUTPUT="$($CLAUDE_BIN --print "${JUDGE_MODEL_ARGS[@]}" -p "$JUDGE_PROMPT" 
 }
 
 # Save raw judge output
-echo "$JUDGE_OUTPUT" > "$EVAL_DIR/${RUN_ID}_raw.txt"
+echo "$JUDGE_OUTPUT" > "$EVAL_DIR/${RUN_ID}${EVAL_SUFFIX}_raw.txt"
 
 # Extract YAML block from judge output
 EVAL_YAML="$(echo "$JUDGE_OUTPUT" | sed -n '/^```yaml/,/^```/p' | sed '1d;$d')"
@@ -173,8 +177,9 @@ if [ -z "$EVAL_YAML" ]; then
 fi
 
 # Save structured evaluation
-cat > "$EVAL_DIR/${RUN_ID}.yaml" <<EOF
+cat > "$EVAL_DIR/${RUN_ID}${EVAL_SUFFIX}.yaml" <<EOF
 run_id: $RUN_ID
+judge_model: ${JUDGE_MODEL:-default}
 task: $TASK
 env_a: $ENV_A
 env_b: $ENV_B
@@ -185,11 +190,11 @@ evaluated_at: $(date -Iseconds)
 $EVAL_YAML
 EOF
 
-log_ok "Judging complete: $EVAL_DIR/${RUN_ID}.yaml"
+log_ok "Judging complete: $EVAL_DIR/${RUN_ID}${EVAL_SUFFIX}.yaml"
 log_info "Run 'arena taste $RUN_ID' to see the results"
 
 # Auto-post to Discord #claude-bakeoff
-if [ -f "$ARENA_ROOT/bin/discord-report.sh" ]; then
+if [ -f "$ARENA_ROOT/bin/discord-report.sh" ] && [ -z "$EVAL_SUFFIX" ]; then
     log_info "Posting results to Discord..."
     "$ARENA_ROOT/bin/discord-report.sh" "$RUN_ID" || log_error "Discord report failed (non-fatal)"
 fi

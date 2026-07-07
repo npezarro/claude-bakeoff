@@ -16,10 +16,14 @@ CLAUDE_BIN="${BAKE_CLAUDE_BIN:-claude}"
 MAX_TURNS="${BAKE_MAX_TURNS:-10}"
 PROMPT="${BAKE_PROMPT:?BAKE_PROMPT is required}"
 MODEL="${BAKE_MODEL:-}"
+EFFORT="${BAKE_EFFORT:-}"
 
 MODEL_ARGS=()
 if [ -n "$MODEL" ]; then
     MODEL_ARGS=(--model "$MODEL")
+fi
+if [ -n "$EFFORT" ]; then
+    MODEL_ARGS+=(--effort "$EFFORT")
 fi
 
 cd "$WORKSPACE_DIR"

@@ -46,6 +46,15 @@ TASK_FILE="$TASK_DIR/task.yaml"
 CLAUDE_BIN="$(config_get claude_bin claude)"
 MAX_TURNS="$(config_get claude_max_turns 10)"
 
+# Per-task turn override: tasks/<name>/task.yaml `max_turns: N` beats config.
+TASK_MAX_TURNS="$(grep -E '^max_turns:' "$TASK_FILE" 2>/dev/null | head -1 | awk '{print $2}' || true)"
+if [ -n "${TASK_MAX_TURNS:-}" ]; then
+    MAX_TURNS="$TASK_MAX_TURNS"
+fi
+
+# Effort passthrough: pre-set BAKE_EFFORT env wins, else config claude_effort.
+export BAKE_EFFORT="${BAKE_EFFORT:-$(config_get claude_effort '')}"
+
 # Discord platform config — secrets sourced from external .env, not committed
 BAKEOFF_ENV_FILE="${BAKEOFF_ENV_FILE:-$HOME/.config/claude-bakeoff/.env}"
 if [ -f "$BAKEOFF_ENV_FILE" ]; then
