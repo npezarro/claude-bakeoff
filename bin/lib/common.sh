@@ -16,6 +16,33 @@ config_get() {
     fi
 }
 
+# A bake is supposed to measure the workspace CLAUDE.md and nothing else. But
+# `claude --print` also loads the HOST's ~/.claude/CLAUDE.md and fires the host's
+# SessionStart hooks, so without isolation every arm silently shares whatever the
+# host's global instruction set says -- and a "no instructions" control arm is not
+# a control at all. Proven 2026-08-17: from a bare temp workspace, the CLI answered
+# YES to "does your context contain <string that exists only in the host guidance>",
+# and NO once CLAUDE_CONFIG_DIR pointed somewhere else. The workspace CLAUDE.md
+# still loads under isolation, which is the half we want.
+#
+# Returns the path to a config dir holding credentials and nothing else.
+# The caller owns it and must remove it (trap on EXIT).
+isolated_config_dir() {
+    local src="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+    local dir
+    dir="$(mktemp -d "${TMPDIR:-/tmp}/bakeoff-cfg-XXXXXX")"
+    if [ -f "$src/.credentials.json" ]; then
+        cp "$src/.credentials.json" "$dir/.credentials.json"
+        chmod 600 "$dir/.credentials.json"
+        echo "$dir"; return 0
+    fi
+    if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+        echo "$dir"; return 0       # auth travels in the env, nothing to copy
+    fi
+    rmdir "$dir" 2>/dev/null || true
+    return 1
+}
+
 # Generate a run ID
 generate_run_id() {
     date +%Y%m%d_%H%M%S

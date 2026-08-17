@@ -10,7 +10,9 @@ claude-bakeoff — A/B testing for Claude across instruction recipes AND platfor
 
 Usage:
   arena bake   <task> [--env-a NAME] [--env-b NAME] [--platform-a NAME] [--platform-b NAME]
+  arena bake-n <task> --envs A B C [...] [--jobs N]
   arena judge  <run-id>
+  arena judge-n <run-id>
   arena taste  <run-id>
   arena discord-report <run-id>
   arena merge  <run-id>
@@ -23,7 +25,9 @@ Usage:
 Commands:
   auto             Describe what to test; Claude designs and runs the experiment
   bake             Put a challenge in the oven under both recipes
+  bake-n           Same challenge, every recipe at once (more than two candidates)
   judge            Send a completed bake to the judges
+  judge-n          Rank every arm of an N-way bake, blind, in one call
   taste            Display the judging results
   discord-report   Post results to #claude-bakeoff in Discord
   merge            Synthesize the best of both recipes into a merged response
@@ -65,6 +69,8 @@ shift || true
 case "$cmd" in
     auto)           exec "$ARENA_ROOT/bin/auto.sh" "$@" ;;
     bake|run)       exec "$ARENA_ROOT/bin/run.sh" "$@" ;;
+    bake-n)         exec "$ARENA_ROOT/bin/bake-n.sh" "$@" ;;
+    judge-n)        exec "$ARENA_ROOT/bin/judge-n.sh" "$@" ;;
     judge|eval)     exec "$ARENA_ROOT/bin/evaluate.sh" "$@" ;;
     merge)          exec "$ARENA_ROOT/bin/merge.sh" "$@" ;;
     apply)          exec "$ARENA_ROOT/bin/apply.sh" "$@" ;;

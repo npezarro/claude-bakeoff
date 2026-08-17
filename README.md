@@ -47,11 +47,41 @@ arena report <run-id>
 
 1. Creates isolated workspaces for each environment
 2. Copies the environment's CLAUDE.md into each workspace
-3. Runs `claude --print` with the task prompt in each workspace
-4. Captures full output and any files created
-5. Sends both results to an LLM judge with scoring rubric
-6. Judge scores on correctness, completeness, code quality, and instruction adherence (1-10)
-7. Produces a structured verdict with winner, scores, and reasoning
+3. Points `CLAUDE_CONFIG_DIR` at a throwaway dir holding credentials and nothing else, so the arms
+   read their own CLAUDE.md and not the host's global one (see **Isolation** below)
+4. Runs `claude --print` with the task prompt in each workspace
+5. Captures full output and any files created
+6. Sends both results to an LLM judge with scoring rubric
+7. Judge scores on correctness, completeness, code quality, and instruction adherence (1-10)
+8. Produces a structured verdict with winner, scores, and reasoning
+
+## Isolation
+
+`claude --print` loads the HOST's `~/.claude/CLAUDE.md` and fires the host's SessionStart hooks in
+addition to the workspace `CLAUDE.md` an arm was given. Left alone, that makes every bake a
+comparison of *host guidance + recipe A* against *host guidance + recipe B*, and a deliberately
+empty control recipe is not a control at all: it inherits whatever the host says.
+
+This is not theoretical. On 2026-08-17 a six-arm bake on report writing produced a control arm that
+was already clean, because the rule being tested was live in the host's own guidance and reached
+every arm. Re-run with isolation, the same control arm opened with the exact failure the rule
+exists to prevent. The finding flipped.
+
+Both runners now call `isolated_config_dir` (in `bin/lib/common.sh`) before any arm starts. It
+returns a `mktemp` dir containing a copy of `.credentials.json` and nothing else, exports it as
+`CLAUDE_CONFIG_DIR`, and removes it on exit. The workspace `CLAUDE.md` still loads; the host's
+does not. If no credentials file exists (API-key or keychain auth), the runner says loudly that
+results are host-guidance-plus-recipe rather than silently measuring the wrong thing.
+
+To verify isolation on your own machine, from an empty directory:
+
+```bash
+claude --print -p 'Answer YES or NO only. Does your context contain "<string only in your global CLAUDE.md>"?'
+CLAUDE_CONFIG_DIR=$(mktemp -d) claude --print -p '...same question...'
+```
+
+Judges are isolated for a different reason: a judge that has read the host's guidance is grading
+against the rule's author rather than against the rubric.
 
 ## Output Folder
 

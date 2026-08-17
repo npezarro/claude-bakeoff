@@ -71,6 +71,20 @@ log_info "Challenge:  $TASK"
 log_info "Recipe A:   $ENV_A (platform: $PLATFORM_A)"
 log_info "Recipe B:   $ENV_B (platform: $PLATFORM_B)"
 
+# Isolate the arms from the host's own instruction set before anything runs.
+# Without this the comparison is between (host guidance + recipe A) and
+# (host guidance + recipe B), which is not what the recipe names claim.
+ISO_CFG=""
+if ISO_CFG="$(isolated_config_dir)"; then
+    export CLAUDE_CONFIG_DIR="$ISO_CFG"
+    trap 'rm -rf "$ISO_CFG"' EXIT
+    log_info "Config isolated: arms see their own CLAUDE.md and no host guidance"
+else
+    log_error "NOT ISOLATED: no credentials file to copy. Every arm will also load"
+    log_error "the host's ~/.claude/CLAUDE.md and SessionStart hooks. Results are"
+    log_error "a comparison of host-guidance-plus-recipe, so say so when reporting."
+fi
+
 # Create run directory structure
 mkdir -p "$RUN_DIR/env-a/workspace" "$RUN_DIR/env-b/workspace"
 
