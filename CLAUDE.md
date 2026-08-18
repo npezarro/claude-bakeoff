@@ -20,6 +20,7 @@ A/B testing framework for comparing Claude CLI instruction environments. Tests d
 4. **Task eval criteria drive the judge.** Write specific, measurable criteria in `task.yaml`. Vague criteria ("good quality") produce unreliable judge scores.
 5. **Runs and evaluations are gitignored.** Don't force-add them. Results that matter get distilled into the environment or agentGuidance.
 6. **`cli` platform runs with `--dangerously-skip-permissions`.** Bakes execute headless in isolated throwaway workspaces with nobody present to approve tool permissions, so this is required for a valid comparison (otherwise agents can't write files or run code).
+7. **Bakes are isolated from host guidance.** Before any arm runs, `isolated_config_dir` (`bin/lib/common.sh`) points `CLAUDE_CONFIG_DIR` at a throwaway dir holding only credentials, so arms load the workspace `CLAUDE.md` and not `~/.claude/CLAUDE.md` or the host's SessionStart hooks. Without a credentials file to copy, the run logs a loud warning and results are host-guidance-plus-recipe, not the recipe alone. See README's Isolation section for detail.
 
 ## Workflow
 
@@ -33,6 +34,8 @@ arena merge <run-id>        # Synthesize best-of-both
 arena auto "<prompt>"       # Quick single-prompt bakeoff
 arena eval <run-id> --judge-model <model>  # Override config.yaml judge_model for this eval
 arena eval <run-id> --suffix <suffix>      # Write eval output as <run-id><suffix>.yaml instead of overwriting; skips Discord auto-post
+arena bake-n <task> --envs A B C [--jobs N]   # Same challenge, every recipe at once, one ranking
+arena judge-n <run-id>      # Rank every arm of an N-way bake, blind, in one call
 ```
 
 `config.yaml` settings relevant to a run: `claude_max_turns` (default 45), `claude_effort` (passed through as `BAKE_EFFORT`), `judge_model` (default `claude-fable-5`, pinned for a consistent discriminating judge). A `task.yaml`'s own `max_turns:` field overrides `claude_max_turns` for that task.
