@@ -167,6 +167,18 @@ winner_reason: |
 JUDGE_EOF
 )"
 
+# A judge that has read the host's guidance grades against whatever the host
+# believes instead of against the rubric. Same isolation the arms get.
+JUDGE_CFG=""
+if [ -n "${ARENA_NO_ISOLATION:-}" ]; then
+    log_error "ISOLATION OFF (ARENA_NO_ISOLATION set): the judge also reads the host's guidance."
+elif JUDGE_CFG="$(isolated_config_dir)"; then
+    export CLAUDE_CONFIG_DIR="$JUDGE_CFG"
+    trap 'rm -rf "$JUDGE_CFG"' EXIT
+else
+    log_error "NOT ISOLATED: the judge will also read the host's guidance."
+fi
+
 log_info "The judges are deliberating..."
 
 mkdir -p "$EVAL_DIR"
@@ -211,7 +223,9 @@ log_ok "Judging complete: $EVAL_DIR/${RUN_ID}${EVAL_SUFFIX}.yaml"
 log_info "Run 'arena taste $RUN_ID' to see the results"
 
 # Auto-post to Discord #claude-bakeoff
-if [ -f "$ARENA_ROOT/bin/discord-report.sh" ] && [ -z "$EVAL_SUFFIX" ]; then
+# ARENA_NO_DISCORD=1 for batch work: re-judging a backlog of old runs would
+# otherwise post one report per run into a channel nobody asked to have filled.
+if [ -f "$ARENA_ROOT/bin/discord-report.sh" ] && [ -z "$EVAL_SUFFIX" ] && [ -z "${ARENA_NO_DISCORD:-}" ]; then
     log_info "Posting results to Discord..."
     "$ARENA_ROOT/bin/discord-report.sh" "$RUN_ID" || log_error "Discord report failed (non-fatal)"
 fi

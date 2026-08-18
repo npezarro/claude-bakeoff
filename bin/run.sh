@@ -74,8 +74,14 @@ log_info "Recipe B:   $ENV_B (platform: $PLATFORM_B)"
 # Isolate the arms from the host's own instruction set before anything runs.
 # Without this the comparison is between (host guidance + recipe A) and
 # (host guidance + recipe B), which is not what the recipe names claim.
+# ARENA_NO_ISOLATION=1 deliberately reproduces the old, leaky behaviour. The only
+# honest use is as a same-day control: re-running history isolated tells you what
+# changed, but model and CLI drift since the original run is confounded with the
+# isolation unless you also run the leaky arm today.
 ISO_CFG=""
-if ISO_CFG="$(isolated_config_dir)"; then
+if [ -n "${ARENA_NO_ISOLATION:-}" ]; then
+    log_error "ISOLATION OFF (ARENA_NO_ISOLATION set): arms also load the host's guidance."
+elif ISO_CFG="$(isolated_config_dir)"; then
     export CLAUDE_CONFIG_DIR="$ISO_CFG"
     trap 'rm -rf "$ISO_CFG"' EXIT
     log_info "Config isolated: arms see their own CLAUDE.md and no host guidance"
@@ -169,6 +175,19 @@ run_env() {
         cp "$RUN_DIR/$label/output.json" "$RUN_DIR/$label/response.txt"
     fi
 
+    # An arm that returned (almost) nothing is a failed run, not a terse answer, and
+    # the judge cannot tell the difference: it scores the silence and reports a
+    # winner. op5p2-code-review-cli shipped a verdict built on a 112-word env-a
+    # against a 1352-word env-b, and the 5-vs-9 that came back was read for three
+    # weeks as evidence about the recipe.
+    local arm_words
+    arm_words="$(wc -w < "$RUN_DIR/$label/response.txt" 2>/dev/null | tr -d ' ')"
+    if [ "${arm_words:-0}" -lt 20 ]; then
+        log_error "[$label/$env_name] returned $arm_words words -- treating as FAILED, not as an answer"
+        log_error "[$label/$env_name] see $RUN_DIR/$label/stderr.log; judging this run compares a real answer against silence"
+        echo "$arm_words words" > "$RUN_DIR/$label/FAILED"
+    fi
+
     # Snapshot the workspace state after run (capture any files claude created/modified)
     find "$work_dir" -type f ! -name "CLAUDE.md" -newer "$RUN_DIR/meta.yaml" \
         > "$RUN_DIR/$label/changed_files.txt" 2>/dev/null || true
@@ -185,6 +204,10 @@ run_env "env-b" "$ENV_B" "$PLATFORM_B"
 # Update metadata
 sed -i "s/^status:.*/status: completed/" "$RUN_DIR/meta.yaml"
 echo "completed_at: $(date -Iseconds)" >> "$RUN_DIR/meta.yaml"
+
+if [ -e "$RUN_DIR/env-a/FAILED" ] || [ -e "$RUN_DIR/env-b/FAILED" ]; then
+    log_error "At least one arm FAILED. Re-run it before judging; a verdict over a dead arm is not a result."
+fi
 
 log_ok "Bake $RUN_ID complete — ready for judging"
 log_info "Results at: $RUN_DIR"
