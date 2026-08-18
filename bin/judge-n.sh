@@ -22,8 +22,30 @@ JUDGE_MODEL="$(config_get judge_model claude-fable-5)"
 EVAL_DIR="$ARENA_ROOT/$(config_get evaluations_dir evaluations)"
 mkdir -p "$EVAL_DIR"
 
+# A task either ships a required_facts block (report-shaped: did the facts survive
+# the compression) or an eval_criteria list (everything else: did the answer do the
+# job). Falling back to the fluff rubric for a task that never asked for one ranks a
+# code review on its prose economy and calls it a verdict, which is worse than
+# refusing: it looks like an answer. Pick the rubric from what the task declares.
 REQUIRED_FACTS="$(get_task_block "$TASK_FILE" required_facts)"
 N_FACTS="$(printf '%s\n' "$REQUIRED_FACTS" | grep -c '[^[:space:]]' || true)"
+CRITERIA="$(awk '/^eval_criteria:/{f=1;next} f&&/^[a-z_]+:/{exit} f&&/^[[:space:]]*-/{sub(/^[[:space:]]*-[[:space:]]*/,""); print}' "$TASK_FILE")"
+N_CRITERIA="$(printf '%s\n' "$CRITERIA" | grep -c '[^[:space:]]' || true)"
+
+if [ "$N_FACTS" -gt 0 ]; then
+    RUBRIC_LABEL="facts"
+    RUBRIC_HEAD="These $N_FACTS facts are what the reader actually needs. Score each report on how many survive, in any wording:"
+    RUBRIC_BODY="$REQUIRED_FACTS"
+    RUBRIC_N="$N_FACTS"
+elif [ "$N_CRITERIA" -gt 0 ]; then
+    RUBRIC_LABEL="criteria"
+    RUBRIC_HEAD="These $N_CRITERIA criteria are what the task actually asked for. They decide the ranking; fluff density is secondary and breaks ties. Score each answer on how many it meets:"
+    RUBRIC_BODY="$CRITERIA"
+    RUBRIC_N="$N_CRITERIA"
+else
+    log_error "Task '$TASK' declares neither required_facts nor eval_criteria. There is nothing to judge against."
+    exit 1
+fi
 
 # Blind labels, shuffled, recorded before the judge is asked anything.
 MAP="$RUN_DIR/blind-map.tsv"
@@ -56,9 +78,8 @@ reading it. Count a sentence as FLUFF if it does any of these and nothing else:
 A sentence that carries a fact is NOT fluff even if it is long, and a heading is not a sentence.
 Count sentences of prose only: skip code blocks, command output, and table rows.
 
-These $N_FACTS facts are what the reader actually needs. Score each report on how many survive,
-in any wording:
-$REQUIRED_FACTS
+$RUBRIC_HEAD
+$RUBRIC_BODY
 
 The reports:
 EOF
@@ -80,7 +101,7 @@ Return ONLY a JSON object, no prose around it, no code fence:
       "fluff_sentences": 0,
       "fluff_quotes": ["verbatim quote of the worst offender, or none"],
       "facts_present": 0,
-      "facts_missing": ["short name of each missing fact"],
+      "facts_missing": ["short name of each one missed"],
       "opener": "outcome | restatement | apology | preamble | praise",
       "signal_score": 0,
       "rank": 1,
@@ -91,7 +112,8 @@ Return ONLY a JSON object, no prose around it, no code fence:
   "summary": "two sentences: what separated the top from the bottom"
 }
 
-signal_score is 0-100 and must punish BOTH failure modes: fluff kept, and required facts lost.
+facts_present / facts_missing are counted against the numbered list above, whichever kind it is.
+signal_score is 0-100 and must punish BOTH failure modes: fluff kept, and list items lost.
 A report that cut everything including the evidence is not a winner. Rank 1 is best. Every arm
 gets a distinct rank.
 EOF
@@ -128,10 +150,10 @@ fi
 # Reveal: join the judge's blind labels back to recipe names, add the one number
 # that never needed a judge.
 echo
-printf '%-8s %-20s %6s %6s %7s %8s %6s  %s\n' RANK RECIPE WORDS FLUFF/SENT FACTS SCORE OPENER VERDICT
+printf '%-8s %-20s %6s %6s %7s %8s %6s  %s\n' RANK RECIPE WORDS FLUFF/SENT "$(echo "$RUBRIC_LABEL" | tr '[:lower:]' '[:upper:]')" SCORE OPENER VERDICT
 while IFS=$'\t' read -r label arm; do
     words="$(wc -w < "$RUN_DIR/arms/$arm/response.txt" | tr -d ' ')"
-    jq -r --arg l "$label" --arg a "$arm" --arg w "$words" --arg nf "$N_FACTS" '
+    jq -r --arg l "$label" --arg a "$arm" --arg w "$words" --arg nf "$RUBRIC_N" '
         .arms[] | select(.label == $l) |
         [ .rank, $a, $w, "\(.fluff_sentences)/\(.total_sentences)",
           "\(.facts_present)/\($nf)", .signal_score, .opener, .verdict ] | @tsv' "$JSON"
