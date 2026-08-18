@@ -101,7 +101,9 @@ EOF
 # guidance contains the very rule this bake is choosing the wording of, and a
 # judge primed with it would be grading against the author's own phrasing.
 JUDGE_CFG=""
-if JUDGE_CFG="$(isolated_config_dir)"; then
+if [ -n "${ARENA_NO_ISOLATION:-}" ]; then
+    log_error "ISOLATION OFF (ARENA_NO_ISOLATION set): the judge also reads the host's guidance."
+elif JUDGE_CFG="$(isolated_config_dir)"; then
     export CLAUDE_CONFIG_DIR="$JUDGE_CFG"
     trap 'rm -rf "$JUDGE_CFG"' EXIT
 else

@@ -74,8 +74,14 @@ log_info "Recipe B:   $ENV_B (platform: $PLATFORM_B)"
 # Isolate the arms from the host's own instruction set before anything runs.
 # Without this the comparison is between (host guidance + recipe A) and
 # (host guidance + recipe B), which is not what the recipe names claim.
+# ARENA_NO_ISOLATION=1 deliberately reproduces the old, leaky behaviour. The only
+# honest use is as a same-day control: re-running history isolated tells you what
+# changed, but model and CLI drift since the original run is confounded with the
+# isolation unless you also run the leaky arm today.
 ISO_CFG=""
-if ISO_CFG="$(isolated_config_dir)"; then
+if [ -n "${ARENA_NO_ISOLATION:-}" ]; then
+    log_error "ISOLATION OFF (ARENA_NO_ISOLATION set): arms also load the host's guidance."
+elif ISO_CFG="$(isolated_config_dir)"; then
     export CLAUDE_CONFIG_DIR="$ISO_CFG"
     trap 'rm -rf "$ISO_CFG"' EXIT
     log_info "Config isolated: arms see their own CLAUDE.md and no host guidance"
