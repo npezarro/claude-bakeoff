@@ -11,6 +11,8 @@ A/B testing framework for comparing Claude CLI instruction environments. Tests d
 - **Evaluations:** `evaluations/<timestamp>.yaml` — LLM judge verdicts (gitignored)
 - **Platforms:** `platforms/<name>.sh` — pluggable execution backends selected via `platform_a`/`platform_b` in `config.yaml`. Interface: `BAKE_PROMPT`/`BAKE_MODEL`/`BAKE_MAX_TURNS`/`BAKE_EFFORT` env in, JSON with a `.result` field out. Available: `cli` (local `claude` CLI), `discord` (routes through #bakeoff-arena), `bestof` (runs `agentGuidance/scripts/bestof-claude.sh` with 2 parallel instances and keeps the judged winner).
 - **Per-environment model:** `environments/<name>/model` — optional file holding a model ID (e.g. `claude-fable-5`) that overrides the global `claude_model` config for that environment only.
+- **Per-environment platform:** `environments/<name>/platform` — optional file naming a platform (e.g. `codex`, `local`) that overrides the default `cli` platform for that environment only, read by `arena bake-n` so a single N-way bake can put different engines head to head.
+- **Additional platforms:** `codex` (OpenAI Codex CLI via `codex exec --sandbox read-only`, runs under an isolated `CODEX_HOME`) and `local` (on-device Ollama model via `LLMG_OLLAMA_HOST`; text-only reply, no tool or file access, so only meaningful on tasks graded on reply text).
 
 ## Key Rules
 
@@ -21,6 +23,7 @@ A/B testing framework for comparing Claude CLI instruction environments. Tests d
 5. **Runs and evaluations are gitignored.** Don't force-add them. Results that matter get distilled into the environment or agentGuidance.
 6. **`cli` platform runs with `--dangerously-skip-permissions`.** Bakes execute headless in isolated throwaway workspaces with nobody present to approve tool permissions, so this is required for a valid comparison (otherwise agents can't write files or run code).
 7. **Bakes are isolated from host guidance.** Before any arm runs, `isolated_config_dir` (`bin/lib/common.sh`) points `CLAUDE_CONFIG_DIR` at a throwaway dir holding only credentials, so arms load the workspace `CLAUDE.md` and not `~/.claude/CLAUDE.md` or the host's SessionStart hooks. Without a credentials file to copy, the run logs a loud warning and results are host-guidance-plus-recipe, not the recipe alone. See README's Isolation section for detail.
+8. **`codex` platform runs under an isolated `CODEX_HOME`.** Defaults to `~/.codex-alt` (override via `BAKE_CODEX_HOME`), so a bake never runs against the personal ChatGPT/Codex session — same isolation intent as rule 7, applied to the Codex account boundary.
 
 ## Workflow
 
