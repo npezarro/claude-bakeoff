@@ -1,0 +1,233 @@
+name: code-review
+description: Review a PR diff that adds an API caching layer, identifying real bugs and acknowledging good patterns
+
+prompt: |
+  Review the following PR diff. The developer is adding a Redis caching layer to an
+  Express API that serves product data. Provide a thorough code review with issues
+  prioritized by severity.
+
+  **PR title:** "Add Redis caching to product endpoints for faster reads"
+  **PR description:** "Adds a cache-aside pattern to our product API. Cache is warmed
+  on startup and invalidated on writes. Reduces p95 latency from ~800ms to ~50ms
+  for product list and detail endpoints."
+
+  **Diff:**
+
+  ```diff
+  --- /dev/null
+  +++ b/src/cache/productCache.js
+  @@ -0,0 +1,89 @@
+  +const Redis = require('ioredis');
+  +const db = require('../db/pool');
+  +
+  +const redis = new Redis(process.env.REDIS_URL);
+  +const CACHE_TTL = 3600; // 1 hour
+  +
+  +/**
+  + * Cache key generators — centralized to avoid key mismatches
+  + */
+  +const keys = {
+  +  productList: () => 'products:list',
+  +  productDetail: (id) => `products:${id}`,
+  +  productsByCategory: (cat) => `products:category:${cat}`,
+  +};
+  +
+  +/**
+  + * Get a product from cache, falling back to DB
+  + */
+  +async function getProduct(productId) {
+  +  const cached = await redis.get(keys.productDetail(productId));
+  +  if (cached) {
+  +    return JSON.parse(cached);
+  +  }
+  +
+  +  const { rows } = await db.query(
+  +    'SELECT * FROM products WHERE id = $1',
+  +    [productId]
+  +  );
+  +  const product = rows[0];
+  +
+  +  if (product) {
+  +    await redis.setex(keys.productDetail(productId), CACHE_TTL, JSON.stringify(product));
+  +  }
+  +
+  +  return product;
+  +}
+  +
+  +/**
+  + * Get all products, cached as a single list
+  + */
+  +async function getProducts() {
+  +  const cached = await redis.get(keys.productList());
+  +  if (cached) {
+  +    return JSON.parse(cached);
+  +  }
+  +
+  +  const { rows } = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+  +  await redis.setex(keys.productList(), CACHE_TTL, JSON.stringify(rows));
+  +  return rows;
+  +}
+  +
+  +/**
+  + * Invalidate all product caches when data changes
+  + */
+  +async function invalidateProduct(productId) {
+  +  await redis.del(keys.productDetail(productId));
+  +  await redis.del(keys.productList());
+  +  // Also clear category caches
+  +  const categoryKeys = await redis.keys('products:category:*');
+  +  if (categoryKeys.length > 0) {
+  +    await redis.del(...categoryKeys);
+  +  }
+  +}
+  +
+  +/**
+  + * Warm the cache on startup with all products
+  + */
+  +async function warmCache() {
+  +  console.log('Warming product cache...');
+  +  const { rows: products } = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+  +
+  +  // Cache the full list
+  +  await redis.setex(keys.productList(), CACHE_TTL, JSON.stringify(products));
+  +
+  +  // Cache each individual product
+  +  for (const product of products) {
+  +    await redis.setex(keys.productDetail(product.id), CACHE_TTL, JSON.stringify(product));
+  +  }
+  +
+  +  // Cache by category
+  +  const categories = [...new Set(products.map(p => p.category))];
+  +  for (const category of categories) {
+  +    const catProducts = products.filter(p => p.category === category);
+  +    await redis.setex(keys.productsByCategory(category), CACHE_TTL, JSON.stringify(catProducts));
+  +  }
+  +
+  +  console.log(`Cache warmed: ${products.length} products across ${categories.length} categories`);
+  +}
+  +
+  +module.exports = { getProduct, getProducts, invalidateProduct, warmCache, keys };
+  ```
+
+  ```diff
+  --- a/src/routes/products.js
+  +++ b/src/routes/products.js
+  @@ -1,28 +1,20 @@
+   const express = require('express');
+   const router = express.Router();
+  -const db = require('../db/pool');
+  +const cache = require('../cache/productCache');
+  +const db = require('../db/pool');
+
+   router.get('/', async (req, res, next) => {
+     try {
+  -    const { rows } = await db.query('SELECT * FROM products ORDER BY created_at DESC');
+  -    res.json(rows);
+  +    const products = await cache.getProducts();
+  +    res.json(products);
+     } catch (err) {
+       next(err);
+     }
+   });
+
+   router.get('/:id', async (req, res, next) => {
+     try {
+  -    const { rows } = await db.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+  -    if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+  -    res.json(rows[0]);
+  +    const product = await cache.getProduct(req.params.id);
+  +    if (!product) return res.status(404).json({ error: 'Not found' });
+  +    res.json(product);
+     } catch (err) {
+       next(err);
+     }
+   });
+
+   router.post('/', async (req, res, next) => {
+     try {
+       const { title, description, price, category } = req.body;
+       const { rows } = await db.query(
+         'INSERT INTO products (title, description, price, category) VALUES ($1, $2, $3, $4) RETURNING *',
+         [title, description, price, category]
+       );
+  +    await cache.invalidateProduct(rows[0].id);
+       res.status(201).json(rows[0]);
+     } catch (err) {
+       next(err);
+     }
+   });
+
+   router.put('/:id', async (req, res, next) => {
+     try {
+       const { title, description, price, category } = req.body;
+       const { rows } = await db.query(
+         'UPDATE products SET title=$1, description=$2, price=$3, category=$4 WHERE id=$5 RETURNING *',
+         [title, description, price, category, req.params.id]
+       );
+       if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+  +    await cache.invalidateProduct(req.params.id);
+       res.json(rows[0]);
+     } catch (err) {
+       next(err);
+     }
+   });
+
+   router.delete('/:id', async (req, res, next) => {
+     try {
+       const { rowCount } = await db.query('DELETE FROM products WHERE id = $1', [req.params.id]);
+       if (!rowCount) return res.status(404).json({ error: 'Not found' });
+  +    await cache.invalidateProduct(req.params.id);
+       res.status(204).end();
+     } catch (err) {
+       next(err);
+     }
+   });
+  ```
+
+  ```diff
+  --- a/src/app.js
+  +++ b/src/app.js
+  @@ -1,8 +1,14 @@
+   const express = require('express');
+   const app = express();
+  +const { warmCache } = require('./cache/productCache');
+
+   app.use(express.json());
+   app.use('/api/products', require('./routes/products'));
+
+  -app.listen(3000, () => {
+  +app.listen(3000, async () => {
+     console.log('Server running on port 3000');
+  +  await warmCache();
+   });
+  ```
+
+  Provide a thorough code review. For each issue, state the severity (critical, warning,
+  nit) and provide a concrete fix. Also call out what the PR does well.
+
+eval_criteria:
+  - identifies the race condition in invalidateProduct (redis.keys + del is not atomic, new keys can appear between the two calls)
+  - identifies that redis errors are unhandled and will crash the process (no try/catch around redis calls, no error event listener on the redis client)
+  - identifies the N+1 pattern in warmCache (sequential awaits in a for loop instead of pipeline/mget)
+  - identifies the hardcoded TTL that should be configurable via environment variable
+  - correctly prioritizes these issues by severity (crash > race condition > perf > config)
+  - acknowledges the good patterns (centralized key generators, clean cache-aside pattern, proper invalidation on all write paths)
+  - provides actionable fix suggestions with code, not just descriptions of problems
+  - does not over-index on style nitpicks while missing the real bugs
+  - catches that warmCache in the listen callback could delay server readiness or fail silently
+
+expected_behavior: |
+  Should flag 3-4 real bugs in priority order: (1) no error handling on Redis — if Redis
+  goes down the entire API throws unhandled promise rejections; (2) race condition in
+  invalidateProduct using KEYS + DEL (should use SCAN + pipeline or a key prefix with
+  wildcard DEL); (3) warmCache uses sequential awaits instead of Redis pipeline, and
+  runs in the listen callback where failures are swallowed; (4) hardcoded TTL.
+  Should praise the centralized key generators, clean separation of cache logic from
+  routes, and the fact that all write paths invalidate correctly. Should not spend
+  significant review time on formatting or naming when there are real bugs to discuss.
+
+tags:
+  - code-review
+  - nodejs
+  - redis
+  - caching

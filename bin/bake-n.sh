@@ -99,12 +99,25 @@ run_arm() {
     env_model="$(config_get claude_model "")"
     [ -f "$env_dir/model" ] && env_model="$(head -1 "$env_dir/model" | tr -d '[:space:]')"
 
+    # Per-recipe platform, same convention as the `model` file. Without this an N-way bake
+    # could only compare recipes on ONE engine, which is the wrong shape for the question
+    # "are these engines at parity": that needs every engine judged on one scale, and
+    # pairwise bakes cannot be stacked because each gets its own judge.
+    local env_platform="cli"
+    [ -f "$env_dir/platform" ] && env_platform="$(head -1 "$env_dir/platform" | tr -d '[:space:]')"
+    local runner="$ARENA_ROOT/platforms/${env_platform}.sh"
+    if [ ! -f "$runner" ]; then
+        log_error "[$env_name] no platform '${env_platform}' at $runner"
+        echo "NO_PLATFORM" > "$arm_dir/FAILED"
+        return
+    fi
+
     BAKE_PROMPT="$PROMPT" \
     BAKE_ENV_NAME="$env_name" \
     BAKE_CLAUDE_BIN="$CLAUDE_BIN" \
     BAKE_MAX_TURNS="$MAX_TURNS" \
     BAKE_MODEL="$env_model" \
-        "$ARENA_ROOT/platforms/cli.sh" "$work_dir" \
+        "$runner" "$work_dir" \
         > "$arm_dir/output.json" 2>"$arm_dir/stderr.log" || true
 
     if command -v jq >/dev/null 2>&1 && [ -s "$arm_dir/output.json" ]; then
