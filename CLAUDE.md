@@ -17,13 +17,14 @@ A/B testing framework for comparing Claude CLI instruction environments. Tests d
 ## Key Rules
 
 1. **Output goes to private repos, not here.** Bakeoff results often contain proprietary content (resume text, strategy docs). Final synthesized outputs belong in privateContext or the relevant project repo, not in claude-bakeoff.
-2. **Environment CLAUDE.md files are the experiment.** Don't add general agent instructions — each environment should test a specific instruction hypothesis.
-3. **Baseline must stay minimal.** `environments/baseline/CLAUDE.md` is the control. Don't add rules to it.
-4. **Task eval criteria drive the judge.** Write specific, measurable criteria in `task.yaml`. Vague criteria ("good quality") produce unreliable judge scores.
-5. **Runs and evaluations are gitignored.** Don't force-add them. Results that matter get distilled into the environment or agentGuidance.
-6. **`cli` platform runs with `--dangerously-skip-permissions`.** Bakes execute headless in isolated throwaway workspaces with nobody present to approve tool permissions, so this is required for a valid comparison (otherwise agents can't write files or run code).
-7. **Bakes are isolated from host guidance.** Before any arm runs, `isolated_config_dir` (`bin/lib/common.sh`) points `CLAUDE_CONFIG_DIR` at a throwaway dir holding only credentials, so arms load the workspace `CLAUDE.md` and not `~/.claude/CLAUDE.md` or the host's SessionStart hooks. Without a credentials file to copy, the run logs a loud warning and results are host-guidance-plus-recipe, not the recipe alone. See README's Isolation section for detail.
-8. **`codex` platform runs under an isolated `CODEX_HOME`.** Defaults to `~/.codex-alt` (override via `BAKE_CODEX_HOME`), so a bake never runs against the personal ChatGPT/Codex session — same isolation intent as rule 7, applied to the Codex account boundary.
+2. **Tasks are private by default.** The task library lives in `privateContext/bakeoff/tasks/` and is symlinked into `tasks/`; `.gitignore` default-denies `tasks/*` with an allowlist for the public examples (`.example`, `code-review`, `verify-claims`). To create a task: make the directory in `privateContext/bakeoff/tasks/` and symlink it into `tasks/` (see `privateContext/bakeoff/README.md`). Making a task public is a deliberate act: it must contain zero personal or attributed material, and it gets an explicit `!tasks/<name>` allowlist entry. The same applies to personal environments (voice/profile recipes), which live in `privateContext/bakeoff/environments/`.
+3. **Environment CLAUDE.md files are the experiment.** Don't add general agent instructions — each environment should test a specific instruction hypothesis.
+4. **Baseline must stay minimal.** `environments/baseline/CLAUDE.md` is the control. Don't add rules to it.
+5. **Task eval criteria drive the judge.** Write specific, measurable criteria in `task.yaml`. Vague criteria ("good quality") produce unreliable judge scores.
+6. **Runs and evaluations are gitignored.** Don't force-add them. Results that matter get distilled into the environment or agentGuidance.
+7. **`cli` platform runs with `--dangerously-skip-permissions`.** Bakes execute headless in isolated throwaway workspaces with nobody present to approve tool permissions, so this is required for a valid comparison (otherwise agents can't write files or run code).
+8. **Bakes are isolated from host guidance.** Before any arm runs, `isolated_config_dir` (`bin/lib/common.sh`) points `CLAUDE_CONFIG_DIR` at a throwaway dir holding only credentials, so arms load the workspace `CLAUDE.md` and not `~/.claude/CLAUDE.md` or the host's SessionStart hooks. Without a credentials file to copy, the run logs a loud warning and results are host-guidance-plus-recipe, not the recipe alone. See README's Isolation section for detail.
+9. **`codex` platform runs under an isolated `CODEX_HOME`.** Defaults to `~/.codex-alt` (override via `BAKE_CODEX_HOME`), so a bake never runs against the personal ChatGPT/Codex session — same isolation intent as rule 8, applied to the Codex account boundary.
 
 ## Workflow
 

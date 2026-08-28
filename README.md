@@ -116,6 +116,14 @@ bin/arena           # CLI entrypoint
 config.yaml         # Default settings
 ```
 
+Only a couple of representative example tasks are tracked here (`tasks/code-review`,
+`tasks/verify-claims`, plus the `.example` scaffold). The full task library lives in a
+private repo and is symlinked into `tasks/` locally; `.gitignore` default-denies
+everything under `tasks/` except the allowlisted examples, so a new task never lands in
+the public repo by accident. Task prompts routinely embed personal or project-specific
+material (voice samples, real codebases, purchasing context), which is why private is
+the default and public is the exception.
+
 ## Commands
 
 | Command | Description |

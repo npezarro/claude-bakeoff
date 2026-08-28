@@ -1,6 +1,20 @@
 runs/
 evaluations/
 bakeoff-*/
+
+# Tasks are private by default. The task library lives in a private repo and is
+# symlinked into tasks/; only the allowlisted public examples below are tracked.
+# A new task is invisible to git until it is deliberately added here.
+tasks/*
+!tasks/.example
+!tasks/code-review
+!tasks/verify-claims
+
+# Personal voice/profile environments live in the private repo, symlinked in.
+/environments/voice-v1
+/environments/voice-v2
+/environments/linkedin-specific
+/environments/linkedin-warmth
 *.log
 .env
 .env.local

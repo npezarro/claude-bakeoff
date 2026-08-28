@@ -2,6 +2,8 @@
 
 ## Last Updated
 
+2026-08-28 -- **Task library moved private.** The task library and the voice/profile environments now live in `privateContext/bakeoff/{tasks,environments}/` and are symlinked into this repo; `.gitignore` default-denies `tasks/*` with an allowlist for the tracked public examples (`.example`, `code-review`, `verify-claims`). Task prompts routinely carry personal or project-specific material, so private is the default and public is a deliberate allowlist decision (`privateContext/bakeoff/README.md` documents the wiring).
+
 2026-08-19 -- **N-way bakeoffs, host isolation, and a re-run of the history.** Two capabilities and one serious measurement bug, all from a single question: which wording of an anti-fluff rule should ship into `agentGuidance/agent.md`.
 
 **Host isolation (the important one).** `claude --print` loads the HOST's `~/.claude/CLAUDE.md` and fires the host's SessionStart hooks on top of the workspace `CLAUDE.md` an arm was given. Every bake this repo ran before 2026-08-18 was therefore *host guidance + recipe A* vs *host guidance + recipe B*, and a deliberately empty control recipe was not a control. It changed a result on the first run: the control arm came back clean because the rule under test was live in the host's guidance and reaching every arm; isolated, it opened by quoting the reader's own question back at them (78 -> 63). `isolated_config_dir` in `bin/lib/common.sh` returns a `mktemp` dir holding credentials and nothing else; `run.sh`, `bake-n.sh`, `evaluate.sh` and `judge-n.sh` all use it. `ARENA_NO_ISOLATION=1` reproduces the old behaviour deliberately, as a same-day control. Judges are isolated for a different reason: one that has read the host guidance grades against the rule's author instead of the rubric.
@@ -18,7 +20,7 @@
 
 ## Open Work
 
-- **Untracked inputs.** `tasks/code-review`, `tasks/multi-file-impl`, `tasks/linkedin-usage-monitor`, `tasks/voice-match` and five `environments/` recipes exist only on this machine, so results that use them are unreproducible by anyone else. They belong to earlier sessions; committing them is a decision for whoever owns them.
+- **Private inputs.** Most tasks and the voice/linkedin environments live in `privateContext/bakeoff/` (symlinked in), so results that use them are reproducible on this machine but not by the public. Only `tasks/code-review` and `tasks/verify-claims` are public.
 - **Treat any single-run verdict in `evaluations/` as a hypothesis.** Judge noise on identical inputs is about +/-2 and run-to-run variance is larger than that.
 - `run.sh` flags an arm returning under 20 words as FAILED, added after `op5p2-code-review-cli` shipped a 5-vs-9 verdict built on a 112-word dead arm. Older verdicts predate that guard.
 
