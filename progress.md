@@ -2,6 +2,7 @@
 
 > Continuously updated log of all work done on this project. Newest first. One entry per PR, deploy, or significant change.
 
+- `f817bdf` Task library moved private: tasks and voice/profile environments now live in `privateContext/bakeoff/{tasks,environments}/`, symlinked in; `.gitignore` default-denies `tasks/*` with an allowlist for the public examples (`.example`, `code-review`, `verify-claims`). Arena unchanged (every `bin/*.sh` resolves through the symlinks).
 - `f8aa66b` Re-run the history under isolation: 12 pairs, 5 flipped, same-day leaky controls flipped with them (drift, not the leak). Adds `docs/2026-08-18-history-rerun.md`, makes `judge-n` take its rubric from the task (`required_facts` or `eval_criteria`, refusing a task with neither), and makes `run.sh` flag an arm under 20 words as FAILED instead of letting a judge score silence.
 - `27274e2` Isolate the two-way judge (`evaluate.sh`) as well, add `ARENA_NO_ISOLATION=1` for a deliberate same-day control and `ARENA_NO_DISCORD=1` for batch re-judging.
 - `718dd84` report-fluff findings: the hybrid wording wins both challenges and is what shipped into `agentGuidance/agent.md`.
