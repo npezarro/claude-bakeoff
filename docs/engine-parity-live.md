@@ -4,89 +4,66 @@ Companion to `engine-parity.md`, which covered closed-book prose. These two task
 real retrieval: current prices, per-retailer, with URLs. This is the shape the public apps
 actually serve, and the results are materially different from the closed-book ones.
 
-Blind-judged (Fable, arms renamed ARM-A/B/C). Run 2026-08-31.
+Blind-judged (Fable, arms renamed ARM-A/B/C). First run 2026-08-31, re-measured
+2026-09-03 after the retrieval fix.
 
 ## Result
 
+Re-measured 2026-09-03 after the retrieval fix (Tavily/Brave ahead of SearXNG, bing and the
+permanently-CAPTCHA'd engines dropped). **The first run's local numbers were invalid**: they
+were produced while the search backend was returning dictionary definitions, so they measured
+a broken pipeline rather than the engine.
+
 | task | Claude | Codex | local (Qwen 30B + retrieval) |
 |---|---|---|---|
-| sander-buying-guide | **93** (8/8 criteria) | 76 (6/8) | 2 (0/8) |
-| live-price-verify | 62 (4/6) | **91** (6/6) | 8 (3/6) |
+| sander-buying-guide (2026-08-31) | **93** (8/8) | 76 (6/8) | 2 (0/8) *retrieval broken* |
+| live-price-verify (2026-08-31) | 62 (4/6) | **91** (6/6) | 8 (3/6) *retrieval broken* |
+| live-price-verify (2026-09-03, retrieval fixed) | **88** (6/6) | 78 (5/6) | 25 (3/6) |
 
-**Codex beat Claude on live-price-verify**, which did not happen once across the three
-closed-book tasks. Claude was scrupulously honest about what it could not verify but left
-the two central questions (price difference, stock status) unanswered and spent sentences
-narrating its own epistemics. Codex answered all six criteria with a per-retailer URL each
-and flagged the unverifiable cells explicitly. On a task that rewards *getting the numbers*,
-Claude's caution cost it and Codex's directness won.
+Three things changed with the fix, and two of them are corrections to what I reported before.
 
-That is a real reversal, not noise in the same direction: the closed-book tasks rewarded
-completeness of reasoning, and these reward verified specifics.
+**The "Codex beats Claude" result did not replicate.** On the re-run Claude won 88 to 78,
+reversing the 62-to-91 of six days earlier. That earlier reversal was one observation at
+n=1, flagged as such at the time, and it should now be treated as noise rather than a
+finding. Claude has won five of six live and closed-book task-runs.
 
-## The local arm did not lose. It produced dangerous output.
+**Local improved but is still unsafe.** 8 -> 25 confirms the retrieval fix helped, and it is
+still the worst arm by a wide margin.
 
-Its two answers, verbatim in substance:
+**The failure mode changed, and the new one is more interesting.**
 
-1. sander-buying-guide: "The evidence provided contains no information about power
-   sanders... The evidence is entirely unrelated to the query." Sources: Wikipedia's *Best
-   Buy* article, `dictionary.cambridge.org/dictionary/english/best`, Merriam-Webster.
-2. live-price-verify: "Bosch ROS20VSC costs **$299.99** at Amazon, **$349.99** at Lowe's
-   and **$349.99** at Home Depot." The real price is about **$99**. The citation was a
-   TV-series Wikipedia page.
+## Retrieval was necessary but not sufficient
 
-The second is the serious one. It is fluent, cited, internally consistent, and would send
-a reader to a checkout expecting roughly triple the real price. Nothing about its shape
-signals that it is wrong.
+With the fix, the local arm's sources are genuinely good: the Amazon product page,
+camelcamelcamel, a woodworknation review, a redflagdeals thread. No dictionaries.
 
-### Root cause: the search backend, not the model
+It still reported the Bosch ROS20VSC at **$199.99 at Amazon, $229.99 at Lowe's, $249.99 at
+Home Depot** (real price ~$99), citing all three to source [4], `camelcamelcamel.com`.
 
-SearXNG reported `unresponsive_engines: brave "Suspended: too many requests",
-duckduckgo "CAPTCHA", startpage "Suspended: CAPTCHA"`. Three of five engines are blocked,
-leaving bing and google cse, and bing keyword-matches: for "best power sander for stripping
-thick dark wood finish under $150" its top hits were bestbuy.com and two dictionary
-definitions of "best".
+That is a **price-history page for Amazon**. It contains many numbers, including historical
+highs, and it has no Lowe's or Home Depot data at all. So the model:
 
-Note what this means. The first answer is the pipeline working correctly: given dictionary
-pages, it refused to invent a buying guide. **Grounding discipline held.** The second is
-the same pipeline given evidence that merely *looked* like prices, and grounding does not
-help when the ground is wrong.
+1. read historical prices as current ones, and
+2. invented the per-retailer attribution, citing a source that cannot support it.
 
-### Two bugs this exposed, both fixed
+Numeric provenance alone would NOT catch this, because those numbers really do appear on
+the cited page. What catches it is a **claim-source consistency check**: a claim of the form
+"$X at Lowe's" requires the cited page to mention Lowe's. That check is cheap, mechanical,
+and is now the highest-value remaining item.
 
-**The degradation signal was being thrown away.** `search()` attached
-`unresponsiveEngines` to its result array, then returned `dedupe(results)`, which builds a
-NEW array. The property was silently dropped, so every caller saw `searchDegraded: null`
-while three engines were down. The one signal meaning "do not trust these results" was
-being discarded by a dedup step.
-
-**A 120s client timeout killed the 30B mid-answer.** That default was calibrated on 4B
-models at ~33 tok/s; the 30B generates at ~8.5 and reasons first, so a synthesis over a
-full buying guide's evidence exceeded it. The first run of this bake recorded the local arm
-at 0 words, which a judge would have scored as a terrible answer rather than a failed run.
-Timeout is now a per-model property.
-
-**And a guard was added, because a fix to retrieval quality is not available.** The
-gateway now returns `untrustworthyRetrieval: true` when two or more engines are down, and
-the bridge refuses that answer and falls through to Codex. Two is the threshold: one dead
-engine is routine flakiness, two means the result set is only whatever survived.
-
-## What to conclude
-
-- **Claude stays the default.** It won the buying guide outright and is the only arm that
-  never produced a fabricated figure.
-- **Codex earns its place above local, more strongly than the closed-book tests showed.**
-  It won a live task outright, and it retrieves reliably.
-- **The local engine is not currently viable for live research**, and the blocker is
-  retrieval, not the model. Fixing it means a search backend that is not three-fifths
-  CAPTCHA'd: a paid API key (Brave's free tier is 2k/month) would likely resolve it, and
-  that is the single highest-value change available to this pipeline.
-- The earlier roadmap claim that "the residual gap is retrieval quality, not the model" is
-  now measured rather than asserted.
+Note the judge flagged the same class of problem in Codex, more mildly: "key figures point
+at price trackers, category listings, or nothing at all." Price-tracker pages mislead more
+than one engine, so this is not purely a small-model failing.
 
 ## Caveats
 
-- Two tasks, one run each. The Codex-beats-Claude reversal is one observation, not a trend.
-- Live prices move, so these runs are not reproducible byte-for-byte; the failure classes
-  are the durable part.
-- The local arm ran with `maxRounds` 3 and 2 respectively; more rounds would not fix
-  retrieval that returns dictionary pages.
+- Two tasks, one or two runs each. Everything here is a small-n observation; the durable
+  parts are the failure CLASSES, not the point scores.
+- The Codex-beats-Claude result from 2026-08-31 did NOT replicate on 2026-09-03. Treat it
+  as noise. This is the concrete cost of reporting an n=1 ordering.
+- Live prices move, so these runs are not reproducible byte-for-byte.
+- sander-buying-guide was not re-judged after the fix: the local arm returned zero words on
+  that re-run, from a transient ollama connection failure during an 18GB model swap (the
+  client now retries transport errors). Only live-price-verify has post-fix numbers.
+- More research rounds do not fix either failure. Round count changes how much is
+  retrieved, not whether the model reads a price-history page as current prices.
