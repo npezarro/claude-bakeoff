@@ -154,8 +154,11 @@ fi
 log_info "Capability-judging $RUN_ID with $JUDGE_MODEL ($i arms, blind, tag=$TAG)"
 
 RAW="$EVAL_DIR/$RUN_ID.cap-$TAG.raw.txt"
+# Pipe the prompt on stdin, not via -p "$(...)": a prompt over ~128KB (Linux MAX_ARG_STRLEN)
+# passed as a single argv string dies with "Argument list too long". Tasks that produce
+# workspaces (multi-file-impl) blow past that. stdin has no such limit. (evaluate.sh does this.)
 claude --print --model "$JUDGE_MODEL" --max-turns 3 --dangerously-skip-permissions \
-    -p "$(cat "$PROMPT_FILE")" > "$RAW" 2>"$EVAL_DIR/$RUN_ID.cap-$TAG.stderr.log" || true
+    < "$PROMPT_FILE" > "$RAW" 2>"$EVAL_DIR/$RUN_ID.cap-$TAG.stderr.log" || true
 
 JSON="$EVAL_DIR/$RUN_ID.cap-$TAG.json"
 sed -e 's/^```json$//' -e 's/^```$//' "$RAW" | sed -n '/^{/,$p' > "$JSON"
