@@ -51,6 +51,11 @@ arena judge-n <run-id>      # Rank every arm of an N-way bake, blind, in one cal
 - LLM judge correlates ~80% with human preference; diverges on subjective "code quality" dimension
 - The 4-path bakeoff pattern (structured, adversarial, deep-dive, minimal) is effective for complex tasks like buying guides
 
+## Objective & Capability Judging
+
+- **`bin/grade-hidden.sh <run-id> [grader-cmd]`** — judge-free grading for a task that ships a hidden `tasks/<task>/grader/` dir (default `grader-cmd`: `python3 grade.py`). Copies each arm's workspace plus the whole grader dir (not just `*.py`, so answer-key/data files come along) into a throwaway dir, runs the grader, and parses its `GRADE: <passed>/<total>` line. Writes `evaluations/<run-id>.grade.json`. Not wired into the `arena` dispatcher; run directly.
+- **`bin/judge-cap.sh <run-id> [judge-model] [--tag TAG]`** — blind N-way capability judge (default judge `claude-sonnet-5`), distinct from `judge-n.sh` (report-fluff rubric) and `evaluate.sh` (pairwise, non-blind). Scores every arm on the task's own `eval_criteria` plus correctness/completeness/evidence-fidelity in one shuffled-label call. Writes `evaluations/<run-id>.cap-<TAG>.json` (TAG defaults to the judge model's short name), so one bake can be judged by multiple judges without clobbering. Never auto-posts to Discord. Not wired into the `arena` dispatcher; run directly.
+
 ## Discord Reporting (`bin/discord-report.sh`)
 
 `arena discord-report <run-id>` posts evaluation results to a Discord channel. When changing this path, follow the cross-cutting Discord rules:
