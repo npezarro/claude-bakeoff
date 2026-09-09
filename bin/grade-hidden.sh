@@ -32,11 +32,15 @@ for arm_dir in "$RUN_DIR"/arms/*/; do
     ws="$arm_dir/workspace"
     tmp="$(mktemp -d "${TMPDIR:-/tmp}/grade-XXXXXX")"
     [ -d "$ws" ] && cp -r "$ws/." "$tmp/" 2>/dev/null || true
-    cp "$GRADER_DIR"/*.py "$tmp/" 2>/dev/null || true
+    # Copy the WHOLE grader dir (grade.py plus any answer-key/data files like expected.json),
+    # not just *.py, or graders that read a key file silently score everything 0.
+    cp -r "$GRADER_DIR"/. "$tmp/" 2>/dev/null || true
     note=""; grade="0/0"; pct=0
     if ls "$tmp"/*.py >/dev/null 2>&1; then
         raw="$(cd "$tmp" && timeout 120 bash -c "$GRADER_CMD" 2>&1 || true)"
-        line="$(printf '%s\n' "$raw" | grep -oE 'GRADE: [0-9]+/[0-9]+' | tail -1 | sed 's/GRADE: //')"
+        # `|| true` so a grader that crashes (no GRADE line) records a note instead of
+        # aborting the whole run under `set -e`.
+        line="$(printf '%s\n' "$raw" | grep -oE 'GRADE: [0-9]+/[0-9]+' | tail -1 | sed 's/GRADE: //' || true)"
         if [ -n "$line" ]; then
             grade="$line"; p="${line%%/*}"; t="${line##*/}"
             [ "$t" -gt 0 ] && pct=$(( 100 * p / t ))
