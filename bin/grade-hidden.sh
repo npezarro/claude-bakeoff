@@ -36,19 +36,17 @@ for arm_dir in "$RUN_DIR"/arms/*/; do
     # not just *.py, or graders that read a key file silently score everything 0.
     cp -r "$GRADER_DIR"/. "$tmp/" 2>/dev/null || true
     note=""; grade="0/0"; pct=0
-    if ls "$tmp"/*.py >/dev/null 2>&1; then
-        raw="$(cd "$tmp" && timeout 120 bash -c "$GRADER_CMD" 2>&1 || true)"
-        # `|| true` so a grader that crashes (no GRADE line) records a note instead of
-        # aborting the whole run under `set -e`.
-        line="$(printf '%s\n' "$raw" | grep -oE 'GRADE: [0-9]+/[0-9]+' | tail -1 | sed 's/GRADE: //' || true)"
-        if [ -n "$line" ]; then
-            grade="$line"; p="${line%%/*}"; t="${line##*/}"
-            [ "$t" -gt 0 ] && pct=$(( 100 * p / t ))
-        else
-            note="no GRADE line ($(printf '%s' "$raw" | tail -1 | head -c 60))"
-        fi
+    # Run the grader unconditionally (it may be python, node, bash, ...). The grader itself
+    # reports 0 when the arm produced nothing to grade; do not gate on a *.py file existing.
+    raw="$(cd "$tmp" && timeout 180 bash -c "$GRADER_CMD" 2>&1 || true)"
+    # `|| true` so a grader that crashes (no GRADE line) records a note instead of
+    # aborting the whole run under `set -e`.
+    line="$(printf '%s\n' "$raw" | grep -oE 'GRADE: [0-9]+/[0-9]+' | tail -1 | sed 's/GRADE: //' || true)"
+    if [ -n "$line" ]; then
+        grade="$line"; p="${line%%/*}"; t="${line##*/}"
+        [ "$t" -gt 0 ] && pct=$(( 100 * p / t ))
     else
-        note="no python files in workspace"
+        note="no GRADE line ($(printf '%s' "$raw" | tail -1 | head -c 60))"
     fi
     printf '%-22s %8s %6s%%   %s\n' "$arm" "$grade" "$pct" "$note"
     [ $first -eq 0 ] && echo ',' >> "$OUT_JSON"; first=0
