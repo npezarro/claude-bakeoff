@@ -14,7 +14,8 @@
 #
 # Usage: judge-cap.sh <run-id> [judge-model] [--tag TAG]
 #   judge-model defaults to claude-sonnet-5 (neutral to the Opus-vs-Fable comparison).
-#   --tag TAG writes evaluations/<run-id>.cap-<TAG>.json (default TAG = judge model short name),
+#   --tag TAG writes evaluations/<run-id>.cap-<TAG>.json (default TAG = judge model minus
+#   the claude- prefix, version kept, e.g. fable-5-1),
 #   so the same bake can be judged by several judges without clobbering.
 # Never auto-posts to Discord.
 set -euo pipefail
@@ -32,7 +33,9 @@ while [ $# -gt 0 ]; do
         *)     JUDGE_MODEL="$1"; shift ;;
     esac
 done
-[ -n "$TAG" ] || TAG="$(echo "$JUDGE_MODEL" | sed -E 's/^claude-//; s/-[0-9].*$//; s/[^a-z0-9]+/-/g')"
+# Default TAG keeps the version: stripping it made claude-fable-5 and claude-fable-5-1 both
+# "fable", so judging one run with both silently overwrote the first verdict AND its map.
+[ -n "$TAG" ] || TAG="$(echo "$JUDGE_MODEL" | sed -E 's/^claude-//; s/[^a-z0-9]+/-/g; s/-+$//')"
 
 RUN_DIR="$ARENA_ROOT/$(config_get runs_dir runs)/$RUN_ID"
 [ -d "$RUN_DIR" ] || { log_error "No such bake: $RUN_ID"; exit 1; }

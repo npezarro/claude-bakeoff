@@ -142,3 +142,54 @@ ARMS="recipe-opus55 recipe-opus5-base recipe-sonnet5-base recipe-haiku45d-base"
 ./bin/judge-cap.sh o55-<task>-r1 claude-fable-5-1 --tag fable51   # judged probes
 ./bin/judge-cap.sh o55-<task>-r1 claude-fable-5   --tag fable5
 ```
+
+## Addendum 2026-09-22 (after Phase 0, n=2): gap-driven layer candidates
+
+Written after the baseline was read. Sections 1-6 above are unchanged.
+
+**Correction to the premise, from the data.** The CLI's own list-price cost basis (fitted
+exactly from `modelUsage`, zero residual) prices Opus 5.5 at $4 / $20 per million input /
+output tokens and $0.20 per million cache reads, against Opus 5 at $5 / $25 / $0.50. Across the
+12 baseline probes Opus 5.5 cost 100% and Opus 5 cost 120%. Opus 5 is therefore not a cheaper
+substitute for Opus 5.5 on this cost basis, so it is kept as a comparison tier but deprioritized
+for layer work. Sonnet 5 (39%) and Haiku 4.5 (12%) are the real cost-saving tiers.
+
+**Gaps found (pre-registered 4-of-4 rule), with the objectively visible mechanism:**
+
+| tier | probes where Opus 5.5 leads 4/4 | mechanism checked in the artifacts |
+|---|---|---|
+| Opus 5 | autonomy-probe, debug-trace | repro/audit scripts left in `/tmp` outside the workspace, so claimed verification is uncheckable; one "report above" with no report |
+| Sonnet 5 | autonomy-probe, long-horizon-probe, debug-trace, verify-claims, fanout-probe, vision-probe | final message says the output was "pasted above" when no assistant message ever contained it (transcripts: the "above" was a tool result the reader never sees); summarized instead of quoted runner output; no before-state |
+| Haiku 4.5 | every judged probe except code-review (2/4) | never rotates a degraded image, then asks the user (vision 5-8/100); coverage inventories that do not match the test file; reports on files it never opened; paraphrased "all tests pass" |
+
+**New candidates (recipes committed, not yet run):**
+
+| recipe | tier | what it adds | targets |
+|---|---|---|---|
+| `recipe-sonnet5-evid` | Sonnet 5 | sonnet-tuned v4 plus a 4-line evidence-depth addendum (quote before and after runner output, prove each fix is load-bearing, re-check every "I changed X" sentence against the file) | phantom "above", thin evidence, and the earlier sonnet-layer over-claim on verify-claims |
+| `recipe-sonnet5-v4` | Sonnet 5 | canonical v4 verbatim (byte-identical to `recipe-opus5-layer`) | control for whether the sonnet-tuned autonomy rewording still matters on Sonnet 5 |
+| `recipe-haiku45d-evid` | Haiku 4.5 | short standalone 8-rule evidence layer: read before reporting, every number copied from a tool result, before/after runner lines verbatim, root-cause fixes, verified-vs-believed split, rotate/crop/enlarge images with tools before reading them, outcome first, deliverable in the message | fabricated inventories, skipped files, the vision collapse |
+| `recipe-haiku45d-layer` | Haiku 4.5 | sonnet-tuned v4 (reuse) | comparison against the short layer; the earlier run showed it destabilizing verify-claims |
+
+Pipeline stages to try after the layers: the verified pass (`platforms/verified.sh`) on Haiku and
+Sonnet for report-critical probes, because an evidence-fidelity failure is the one a
+fresh-context verifier catches without relying on the worker's instruction-following.
+
+**Phase 1 plan (queued):** one 7-arm bake per probe so every layer shares the Opus 5.5 reference
+in the same judge call: `recipe-opus55`, `recipe-sonnet5-base`, `recipe-sonnet5-layer`,
+`recipe-sonnet5-evid`, `recipe-haiku45d-base`, `recipe-haiku45d-layer`, `recipe-haiku45d-evid`.
+Probes: autonomy-probe, long-horizon-probe, verify-claims, debug-trace, vision-probe, fanout-probe
+(n=2 each), then `recipe-sonnet5-v4` and the verified pass on whichever probes remain open.
+Decision rule: section 6 as registered.
+
+**Framework fixes made during Phase 0** (behavior-neutral for the arms):
+- `bin/judge-cap.sh`: the default-tag collision noted in section 2 is fixed; the default tag now
+  keeps the version (`fable-5`, `fable-5-1`). In this study the two judges drew different
+  shuffles on 14 of 16 runs, so per-judge maps were load-bearing.
+- `platforms/cli.sh`: keeps each arm's session transcript at `arms/<arm>/transcript/` (from
+  fanout-probe onward), because `.result` holds only the final assistant turn and an arm that
+  ends on a trailing "see the review above" is otherwise unrecoverable.
+- `bin/bake-n.sh`: an arm whose CLI result has `is_error: true` is now marked FAILED. One
+  baseline arm (Opus 5, debug-trace r2) died after 24 turns with "OAuth session expired and could
+  not be refreshed" when another process rotated the shared refresh token mid-bake; it was
+  re-run in place and the run re-judged by both judges (pre-rerun verdicts kept).
