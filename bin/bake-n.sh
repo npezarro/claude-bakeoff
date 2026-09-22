@@ -131,6 +131,12 @@ run_arm() {
     if [ ! -s "$arm_dir/response.txt" ]; then
         log_error "[$env_name] empty response — see $arm_dir/stderr.log"
         echo "EMPTY" > "$arm_dir/FAILED"
+    elif command -v jq >/dev/null 2>&1 && jq -e '.is_error == true' "$arm_dir/output.json" >/dev/null 2>&1; then
+        # The CLI can end with subtype "success" but is_error true and an error string as the
+        # result (seen: "OAuth session expired and could not be refreshed" after 24 turns, when
+        # another process rotated the refresh token mid-bake). That is a dead run, not an answer.
+        log_error "[$env_name] CLI error result: $(head -c 120 "$arm_dir/response.txt")"
+        echo "IS_ERROR" > "$arm_dir/FAILED"
     else
         log_ok "[$env_name] $(wc -w < "$arm_dir/response.txt" | tr -d ' ') words"
     fi
