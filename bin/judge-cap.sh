@@ -67,7 +67,13 @@ dump_workspace() {
 }
 
 # Blind labels, shuffled, recorded before the judge is asked anything.
-MAP="$RUN_DIR/blind-map-cap.tsv"
+# Per-TAG, like the JSON verdict this map DECODES. A shared map was truncated and
+# reshuffled on every invocation, so judging one run with two judges destroyed the
+# first judge's mapping and left only the last call's. Seen 2026-09-17: two judges on
+# run 20260917_142448 drew OPPOSITE shuffles, so reading the surviving map against the
+# first judge's scores inverted that task's result (reported the arm LOSING by 5 when
+# it won by 5). Nothing errored; the file existed and parsed.
+MAP="$RUN_DIR/blind-map-cap-$TAG.tsv"
 : > "$MAP"
 i=0
 LABELS=(A B C D E F G H I J K L)
@@ -76,6 +82,8 @@ while read -r arm; do
     printf '%s\t%s\n' "ARM-${LABELS[$i]}" "$arm" >> "$MAP"
     i=$((i + 1))
 done < <(find "$RUN_DIR/arms" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | shuf)
+
+cp "$MAP" "$RUN_DIR/blind-map-cap.tsv"   # legacy filename: last judge wins, as before
 
 PROMPT_FILE="$RUN_DIR/judge-cap-prompt.txt"
 {
