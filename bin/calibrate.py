@@ -221,12 +221,12 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:var(--card);border:1px 
 let items=[],labels={},prompts={},outs={},i=0;
 const $=id=>document.getElementById(id);
 async function boot(){
- const d=await (await fetch('/api/data')).json();
+ const d=await (await fetch('api/data')).json();
  items=d.items;labels=d.labels;prompts=d.prompts;
  try{const b=JSON.parse(localStorage.getItem('calib-labels')||'{}');for(const k in b)if(!labels[k])labels[k]=b[k]}catch(e){}
  i=Math.max(0,items.findIndex(x=>!labels[x.id]));if(i<0)i=0;show();
 }
-async function out(oid){if(!outs[oid])outs[oid]=await (await fetch('/api/output?id='+encodeURIComponent(oid))).text();return outs[oid]}
+async function out(oid){if(!outs[oid])outs[oid]=await (await fetch('api/output?id='+encodeURIComponent(oid))).text();return outs[oid]}
 async function show(){
  const it=items[i],l=labels[it.id]||{};
  const done=items.filter(x=>labels[x.id]).length;
@@ -241,7 +241,7 @@ async function show(){
 }
 async function save(){
  try{localStorage.setItem('calib-labels',JSON.stringify(labels))}catch(e){}
- await fetch('/api/labels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(labels)});
+ await fetch('api/labels',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(labels)});
 }
 function set(v){const it=items[i];labels[it.id]={label:v,note:$('note').value,at:new Date().toISOString()};save();show()}
 function go(d){i=Math.min(items.length-1,Math.max(0,i+d));show()}
