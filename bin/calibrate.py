@@ -360,7 +360,13 @@ def judge_one(it, prompts, model):
         else:
             err = "no PASS/FAIL in output"
     except Exception as e:
-        err = f"unparseable: {e}"
+        # The judge sometimes puts unescaped quotes in its reason; the verdict is still there.
+        mv = re.search(r'"verdict"\s*:\s*"(PASS|FAIL)"', raw, re.I)
+        mr = re.search(r'"reason"\s*:\s*"(.*)"\s*\}', raw, re.S)
+        if mv:
+            verdict, reason = mv.group(1).lower(), mr.group(1) if mr else ""
+        else:
+            err = f"unparseable: {e}"
     if err:
         err += f" | rc={r.returncode} | {raw[:200]!r} | {r.stderr[-200:]!r}"
     return {"id": it["id"], "verdict": verdict, "reason": reason, "error": err, "model": model,
