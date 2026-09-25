@@ -17,6 +17,7 @@ Usage:
   arena discord-report <run-id>
   arena merge  <run-id>
   arena list   [challenges|bakes|recipes|platforms]
+  arena calibrate extract|serve|judge|report [--final]
   arena new    <task|recipe> <name>
   arena auto   "<description>" [--no-judge] [--dry-run]
   arena apply  <run-id> --profile <name>
@@ -34,6 +35,7 @@ Commands:
   apply            Apply bakeoff learnings to an agentGuidance profile
   distill          Condense a profile's experience log into top patterns
   list             List challenges, past bakes, recipes, or platforms
+  calibrate        Measure the judge against human Pass/Fail labels (TPR/TNR)
   new              Prepare a new challenge or recipe
 
 Options:
@@ -78,6 +80,7 @@ case "$cmd" in
     taste|report)   exec "$ARENA_ROOT/bin/report.sh" "$@" ;;
     discord-report) exec "$ARENA_ROOT/bin/discord-report.sh" "$@" ;;
     list)           exec "$ARENA_ROOT/bin/list.sh" "$@" ;;
+    calibrate)      exec "$ARENA_ROOT/bin/calibrate.sh" "$@" ;;
     new)            exec "$ARENA_ROOT/bin/new.sh" "$@" ;;
     -h|--help|help|"") usage ;;
     *)      echo "Unknown command: $cmd" >&2; usage ;;

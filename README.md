@@ -83,6 +83,46 @@ CLAUDE_CONFIG_DIR=$(mktemp -d) claude --print -p '...same question...'
 Judges are isolated for a different reason: a judge that has read the host's guidance is grading
 against the rule's author rather than against the rubric.
 
+## Judge calibration
+
+Every verdict in `evaluations/` is an LLM judge's opinion. `arena calibrate` measures how
+often that opinion matches a human's, using the method from
+[validate-evaluator](https://github.com/ai-evals-course/evals-skills/tree/main/skills/validate-evaluator):
+binary Pass/Fail items, disjoint train/dev/test splits, and TPR/TNR instead of accuracy.
+
+An item is one arm response plus one criterion (an `eval_criteria` line, or one of
+`required_facts`) that can be decided from the response text alone. The human and the judge
+see the same two things (the task prompt and the response), so the number measures judgment,
+not access to the workspace. Dead arms (CLI error JSON, under 20 words) are excluded because
+they fail everything trivially.
+
+```bash
+arena calibrate extract        # build ~90 items from runs/ (seeded; splits are per response)
+arena calibrate serve          # label them: http://localhost:8787/
+arena calibrate judge          # one blind binary judge call per item (isolated, resumable)
+arena calibrate report         # TPR/TNR on dev, every disagreement, bias-corrected rate
+arena calibrate report --final # the held-out test split, once
+```
+
+**Labeling.** The page shows the criterion at the top and the response below, grouped so
+each response is read once. Keys: `p` pass, `f` fail, `n` next, `b` back, `u` next
+unlabeled; the note box is optional (Enter saves it). Labels autosave on every keypress.
+The page never shows the judge's verdict. Label every split: train is where few-shot
+examples come from, dev is what you iterate the judge prompt against, test is scored once.
+
+**Reading the report.** TPR is how often the judge says Pass when the human did; TNR is
+how often it says Fail when the human did. A judge with high TPR and low TNR is lenient,
+which is the failure that makes a bake-off look better than it is. Targets are 90/90
+(minimum 80/80); the Wilson 95% intervals show whether the sample can support that claim,
+and under ~15 labels in either class it cannot. `theta = (p_obs + TNR - 1) / (TPR + TNR - 1)`
+corrects the judge's observed pass rate for its known error rates. For each disagreement,
+fix the judge prompt (clearer Pass/Fail definition, an edge-case rule, a few-shot example
+from train) and re-run on dev. `--final` refuses a second run on the test split, because
+a test number you have tuned against is no longer held out.
+
+Items, labels and verdicts live in `calibration/`, a symlink into the private repo that
+`arena calibrate` creates on first use: they contain real arm outputs.
+
 ## Output Folder
 
 By default, after judging (`arena judge`) or merging (`arena merge`), results are collected into a `bakeoff-<taskname>/` folder in the repo root. This folder contains:
@@ -133,6 +173,7 @@ the default and public is the exception.
 | `arena report <run-id>` | Display evaluation results |
 | `arena list tasks\|runs\|envs` | List available items |
 | `arena new task\|env <name>` | Scaffold a new task or environment |
+| `arena calibrate extract\|serve\|judge\|report` | Measure the judge against human Pass/Fail labels |
 
 ## Task Definition
 

@@ -24,3 +24,7 @@ node_modules/
 *.key
 .DS_Store
 .venv-redis/
+
+# Judge-calibration items and human labels hold real arm outputs: symlink into the private repo.
+/calibration
+__pycache__/
