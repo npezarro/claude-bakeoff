@@ -61,6 +61,9 @@ dump_workspace() {
         ! -name '*.db' ! -name '*.sqlite*' ! -name '*.lock' ! -name 'package-lock.json' \
         ! -name '*.png' ! -name '*.jpg' ! -name '*.gif' \
         -size -200k -print0 2>/dev/null | sort -z | while IFS= read -r -d '' f; do
+            # Binary files (e.g. a Postgres data dir an arm kept as repro evidence) put
+            # NUL bytes in the prompt and kill the judge call; list them, skip content.
+            if [ -s "$f" ] && ! grep -Iq . "$f"; then echo "--- ${f#"$dir"/} (binary, skipped) ---"; continue; fi
             echo "--- ${f#"$dir"/} ---"
             head -c 5000 "$f"
             if [ "$(wc -c < "$f")" -gt 5000 ]; then echo; echo "... [truncated at 5KB]"; fi
