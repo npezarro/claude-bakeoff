@@ -237,3 +237,23 @@ bare failure rate near 1 in 2 this is directional evidence, not proof, and is re
 
 **Budget.** `check-usage.sh --gate --force` before every batch; stop launching at 7-day >= 70%
 or 5-hour >= 60%, and record where the stop happened.
+
+## Phase 1 replicate 3 (pre-registered 2026-09-25, before any r3 result)
+
+**Layer r3.** Probes debug-trace and verify-claims (the two cells Sonnet + evid did not win 4/4),
+arms `recipe-opus55`, `recipe-sonnet5-base`, `recipe-sonnet5-evid`, `recipe-sonnet5-v4`, run IDs
+`o55p1-<probe>-r3`, judged by the same two judges with the same tags. Decision, over r1-r3
+(6 judge-run cells per probe):
+- Sonnet + evid is ADOPTED for the autonomous /goal runners if on each of the two probes it beats
+  bare Sonnet in at least 5 of 6 cells and its 6-cell mean is not below bare's, and the other four
+  probes stay as measured (no probe more than 5 points below bare).
+- If it misses on one or both probes but its 6-probe parity stays >= 95% with no probe < 85%, the
+  verdict is "parity, not proven better than bare": deploy it anyway only because it costs +5 points
+  and harms nothing measured; report it that way.
+- Otherwise keep bare Sonnet 5.
+
+**Final-message rule v2.** `recipe-opus55` vs `recipe-opus55-final2` (final-v1 minus the
+"stop background work" clause, plus "keep repro artifacts in the workspace"), code-review,
+run IDs `o55f2-code-review-r1..r3`. Recommend for the Discord worker if: 0 delivery failures
+(final message under 200 words or pointing "above") in 3 runs, repro artifacts in the workspace
+in at least 2 of 3 runs, and paired judged mean no more than 3 points below bare.
