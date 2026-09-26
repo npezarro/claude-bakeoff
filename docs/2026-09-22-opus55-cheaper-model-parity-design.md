@@ -193,3 +193,47 @@ Decision rule: section 6 as registered.
   baseline arm (Opus 5, debug-trace r2) died after 24 turns with "OAuth session expired and could
   not be refreshed" when another process rotated the shared refresh token mid-bake; it was
   re-run in place and the run re-judged by both judges (pre-rerun verdicts kept).
+
+## Phase 1 pre-registration (2026-09-25, before any Phase 1 run)
+
+**Layer bakes.** One 8-arm bake per probe, so every layer shares the Opus 5.5 reference and its
+own tier's bare arm inside the same judge call: `recipe-opus55`, `recipe-sonnet5-base`,
+`recipe-sonnet5-layer` (sonnet-tuned v4), `recipe-sonnet5-v4` (v4 verbatim), `recipe-sonnet5-evid`,
+`recipe-haiku45d-base`, `recipe-haiku45d-layer` (sonnet-tuned v4), `recipe-haiku45d-evid`.
+Probes: autonomy-probe, long-horizon-probe, verify-claims, debug-trace, vision-probe,
+fanout-probe; n=2 each; run IDs `o55p1-<probe>-r<n>`. Same judges (`claude-fable-5-1` tag
+`fable51`, `claude-fable-5` tag `fable5`), each decoded with its own blind map.
+
+Judge-free checks: fanout-probe and verify-claims (pristine suites plus hidden cases, as in
+Phase 0) and, new, vision-probe (cell accuracy of `metrics.csv` against the 20-cell ground truth
+in the task's eval criteria, plus the header).
+
+**How section 6 is applied (clarified now, before results):**
+- Ratios are computed within Phase 1 runs only (Opus 5.5 of the same run and judge).
+- Section 6(a), "raises the gap probe(s) under both judges in both replicates", is read
+  literally: a layer is ADOPTED for a tier only if it beats that tier's bare arm in all 4 cells
+  on every gap probe of that tier that is in this probe set (Sonnet 5 and Haiku 4.5: all six),
+  and (b) and (c) hold. As a separately labelled secondary result, a layer is "supported on
+  probe P" if it beats bare in 4 of 4 cells on P with no other probe falling more than 5 points.
+- (c) "objective unchanged": the four hidden-test probes are not re-run for layers in this
+  phase (saturated for every bare tier); (c) is checked on the three judge-free side-checks only,
+  and the readout says so.
+- Tier parity verdict for a layered config uses the same thresholds as section 6 (95% mean,
+  no probe under 85%; usable fallback 90% mean, none under 80%) over the six Phase 1 probes.
+
+**Code-review replicate 3.** The four bare arms plus `recipe-opus55-final`, run ID
+`o55-code-review-r3`, judged by both judges.
+
+**Headless Opus 5.5 final-message rule** (`recipe-opus55-final`: the bare preamble plus three
+rules: the final message carries the full deliverable, never point "above", stop background
+work before the final message). Motivation: Phase 0 code-review r2, where a background watcher's
+notification produced a 44-word final turn and lost the review. Design: `recipe-opus55` vs
+`recipe-opus55-final` on code-review, run IDs `o55f-code-review-r1..r3`, plus the r3 bake above.
+Primary metric, judge-free: delivery failures, defined as a final message under 300 words or one
+whose only reference to the review is a pointer to earlier content. Rule: recommend the rule for
+headless Opus 5.5 pipelines if the rule arm has 0 delivery failures in its 4 runs AND its judged
+mean on runs where both arms delivered is not more than 5 points below the bare arm's. With a
+bare failure rate near 1 in 2 this is directional evidence, not proof, and is reported as such.
+
+**Budget.** `check-usage.sh --gate --force` before every batch; stop launching at 7-day >= 70%
+or 5-hour >= 60%, and record where the stop happened.
