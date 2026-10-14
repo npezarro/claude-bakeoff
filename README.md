@@ -16,7 +16,7 @@ A few findings from running bakeoff tests:
 
 - **Instruction length is not monotonically better.** Highly detailed instruction sets outperform minimal ones on complex multi-step tasks, but minimal instructions sometimes win on simple single-file edits where the extra context adds noise.
 - **Behavioral constraints cascade unpredictably.** Adding a rule like "always run tests before committing" improved code quality scores but reduced task completion rates when the test suite had flaky tests. The interaction between rules matters more than any single rule.
-- **A single judge run is not a decision.** A 5-way ranking that one judge produced inverted end to end when re-run with two independent blind judges. Rankings are now treated as provisional until the judge is calibrated against human labels (see [Judge calibration](#judge-calibration)); the judge also tends to prefer verbose, well-commented code over concise solutions on subjective dimensions like "code quality".
+- **A single judge run is not a decision.** A 5-way ranking that one judge produced inverted end to end when re-run with two independent blind judges. Single-judge rankings are now treated as provisional. The [Judge calibration](#judge-calibration) tool measures a separate binary judge against human labels, which are still being collected, so no agreement rate is claimed yet. The judge also tends to prefer verbose, well-commented code over concise solutions on subjective dimensions like "code quality".
 
 ## Quick Start
 
