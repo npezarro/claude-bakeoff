@@ -16,7 +16,7 @@ A few findings from running bakeoff tests:
 
 - **Instruction length is not monotonically better.** Highly detailed instruction sets outperform minimal ones on complex multi-step tasks, but minimal instructions sometimes win on simple single-file edits where the extra context adds noise.
 - **Behavioral constraints cascade unpredictably.** Adding a rule like "always run tests before committing" improved code quality scores but reduced task completion rates when the test suite had flaky tests. The interaction between rules matters more than any single rule.
-- **LLM-as-judge scoring correlates with human preference ~80% of the time** on the rubrics I've tested (correctness, completeness, code quality, instruction adherence). The remaining 20% divergence is concentrated in subjective dimensions like "code quality" where the judge tends to prefer verbose, well-commented code over concise solutions.
+- **A single judge run is not a decision.** A 5-way ranking that one judge produced inverted end to end when re-run with two independent blind judges. Rankings are now treated as provisional until the judge is calibrated against human labels (see [Judge calibration](#judge-calibration)); the judge also tends to prefer verbose, well-commented code over concise solutions on subjective dimensions like "code quality".
 
 ## Quick Start
 
