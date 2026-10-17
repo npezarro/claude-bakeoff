@@ -2,6 +2,7 @@
 
 > Continuously updated log of all work done on this project. Newest first. One entry per PR, deploy, or significant change.
 
+- `cd73f2c` `615e706` 2026-10-14: README drops the unmeasured ~80% judge-agreement figure; states calibration covers a separate binary judge, labels pending.
 - `1687f8d` `393c627` 2026-09-26: Phase 1 r3 (`o55p1-debug-trace-r3`, `o55p1-verify-claims-r3`) and final-message rule v2 (`o55f2-code-review-r1..r3`), pre-registered, two-judge blind. New `recipe-opus55-final2`. judge-cap skips binary workspace files. Verdicts copied to `privateContext/deliverables/audits/2026-09-22-opus55-raw/evaluations-r3/`.
 - 2026-09-25: Opus 5.5 parity Phase 1: 96 layered arm runs (`o55p1-*`), code-review r3, and a headless final-message A/B (`o55f-*`), all two-judge blind. Sonnet 5 + evid 96% of Opus 5.5 at 53% cost; Haiku + evid fixes vision (0/20 -> 20/20 cells) but stays at 74%; sonnet-tuned layer null on Sonnet and harmful on Haiku verify. Adds `recipe-opus55-final` and the Phase 1 pre-registration. Readout in privateContext audits.
 - `76bba6d` `d69400e` 2026-09-24: `arena calibrate` (extract / serve / judge / report): measures the judge's TPR/TNR against human Pass/Fail labels on binary (response, criterion) items, validate-evaluator method. 90 items extracted and judged (claude-fable-5: 72 PASS / 18 FAIL); human labeling pending.
